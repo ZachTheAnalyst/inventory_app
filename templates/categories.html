@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Categories - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Categories</h1>
+    <form method="POST">
+        <label for="name">New category name</label>
+        <input type="text" id="name" name="name" required placeholder="e.g. Electronics">
+        <button type="submit">Add category</button>
+    </form>
+</div>
+
+<div class="card">
+    {% if categories %}
+        {% for category in categories %}
+        <div class="item-list-row">
+            <form method="POST" action="{{ url_for('rename_category_route', category_id=category['id']) }}" class="inline-form">
+                <input type="text" name="name" value="{{ category['name'] }}">
+                <button type="submit" class="btn-secondary btn-small">Rename</button>
+            </form>
+            <form method="POST" action="{{ url_for('delete_category_route', category_id=category['id']) }}"
+                  onsubmit="return confirm('Delete category &quot;{{ category['name'] }}&quot;? Items/boxes in it become Uncategorized.');">
+                <button type="submit" class="btn-danger btn-small">Delete</button>
+            </form>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">No categories yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

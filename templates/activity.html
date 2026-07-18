@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Activity Log - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Activity log</h1>
+    {% if entries %}
+        {% for entry in entries %}
+        <div class="item-list-row">
+            <div>
+                <div class="item-name">{{ entry['detail'] }}</div>
+                <div class="item-meta">
+                    {{ entry['action'] }}
+                    {% if entry['target_barcode'] %} · {{ entry['target_barcode'] }}{% endif %}
+                    · {{ entry['timestamp'] }}
+                    {% if entry['performed_by_username'] %} · by admin {{ entry['performed_by_username'] }}{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">No activity recorded yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

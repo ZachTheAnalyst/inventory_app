@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Add Box - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Add a new box</h1>
+    <p class="subtitle">A barcode is generated automatically — print it and stick it on the outside of the box.</p>
+    <form method="POST">
+        <label for="number">Box number / label *</label>
+        <input type="text" id="number" name="number" required placeholder="e.g. Box 04">
+
+        <label for="category">Category</label>
+        <input type="text" id="category" name="category" list="category-options" placeholder="e.g. Winter clothes (existing or new)">
+        <datalist id="category-options">
+            {% for category in categories %}
+            <option value="{{ category['name'] }}">
+            {% endfor %}
+        </datalist>
+
+        <button type="submit">Save & Generate Barcode</button>
+    </form>
+</div>
+{% endblock %}

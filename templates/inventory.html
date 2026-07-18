@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}All Items - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>All items</h1>
+    <form method="GET" class="search-form">
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by name or barcode...">
+
+        <label for="category_id">Category</label>
+        <select name="category_id" id="category_id">
+            <option value="">All categories</option>
+            {% for category in categories %}
+            <option value="{{ category['id'] }}" {% if selected_category == category['id']|string %}selected{% endif %}>{{ category['name'] }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="status">Status</label>
+        <select name="status" id="status">
+            <option value="">Any status</option>
+            <option value="not_packed" {% if selected_status == 'not_packed' %}selected{% endif %}>Not packed</option>
+            <option value="packed" {% if selected_status == 'packed' %}selected{% endif %}>Packed</option>
+        </select>
+
+        <label for="box_id">Box</label>
+        <select name="box_id" id="box_id">
+            <option value="">Any box</option>
+            {% for box in boxes %}
+            <option value="{{ box['id'] }}" {% if selected_box == box['id']|string %}selected{% endif %}>{{ box['number'] }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Filter</button>
+    </form>
+
+    {% if items %}
+        {% for item in items %}
+        <div class="item-list-row">
+            <div>
+                <div class="item-name">{{ item['name'] }}</div>
+                <div class="item-meta">
+                    {{ item['category_name'] or 'Uncategorized' }} · {{ item['barcode'] }}
+                    · {{ 'In ' ~ item['box_number'] if item['status'] == 'packed' else 'Not packed' }}
+                </div>
+            </div>
+            <div class="actions-row">
+                <a class="btn btn-secondary" href="{{ url_for('item_detail', barcode_value=item['barcode']) }}">View</a>
+                <form method="POST" action="{{ url_for('reprint_item', barcode_value=item['barcode']) }}">
+                    <button type="submit" class="btn-secondary btn-small">Reprint</button>
+                </form>
+                <form method="POST" action="{{ url_for('delete_item_route', barcode_value=item['barcode']) }}"
+                      onsubmit="return confirm('Permanently delete &quot;{{ item['name'] }}&quot;?');">
+                    <button type="submit" class="btn-danger btn-small">Delete</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">No items yet. <a href="{{ url_for('add_item') }}">Add one</a>.</div>
+    {% endif %}
+</div>
+{% endblock %}

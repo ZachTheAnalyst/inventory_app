@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Add Item - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Add a new item</h1>
+    <p class="subtitle">A barcode is generated automatically when you save.</p>
+    <form method="POST" enctype="multipart/form-data">
+        <label for="name">Item name *</label>
+        <input type="text" id="name" name="name" required placeholder="e.g. Dell monitor">
+
+        <label for="category">Category</label>
+        <input type="text" id="category" name="category" list="category-options" placeholder="e.g. Electronics (existing or new)">
+        <datalist id="category-options">
+            {% for category in categories %}
+            <option value="{{ category['name'] }}">
+            {% endfor %}
+        </datalist>
+
+        <label for="photo">Photo</label>
+        <input type="file" id="photo" name="photo" accept="image/*" capture="environment">
+
+        <button type="submit">Save & Generate Barcode</button>
+    </form>
+</div>
+{% endblock %}

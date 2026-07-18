@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}All Boxes - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>All boxes</h1>
+    {% if boxes %}
+        {% for box in boxes %}
+        <div class="item-list-row">
+            <div>
+                <div class="item-name">{{ box['number'] }}</div>
+                <div class="item-meta">{{ box['category_name'] or 'Uncategorized' }} · {{ box['item_count'] }} item(s) · {{ box['barcode'] }}</div>
+            </div>
+            <a class="btn btn-secondary" href="{{ url_for('box_detail', barcode_value=box['barcode']) }}">View</a>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">No boxes yet. <a href="{{ url_for('add_box') }}">Add one</a>.</div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Admin - Users - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Accounts</h1>
+    <form method="POST" action="{{ url_for('admin_create_user') }}">
+        <label for="username">New username</label>
+        <input type="text" id="username" name="username" required>
+        <div class="checkbox-row">
+            <input type="checkbox" id="is_admin" name="is_admin">
+            <label for="is_admin" style="margin:0;font-weight:400;">Grant admin</label>
+        </div>
+        <button type="submit">Create account</button>
+    </form>
+</div>
+
+<div class="card">
+    {% for user in users %}
+    <div class="item-list-row">
+        <div>
+            <div class="item-name">{{ user['username'] }} {% if user['is_admin'] %}<span class="badge">admin</span>{% endif %}</div>
+            <div class="item-meta">Created {{ user['date_created'] }}</div>
+        </div>
+        <a class="btn btn-secondary" href="{{ url_for('admin_view_user', user_id=user['id']) }}">View inventory</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

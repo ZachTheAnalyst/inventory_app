@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Not Found{% endblock %}
+{% block content %}
+<div class="card empty-state">
+    <h2>No item found</h2>
+    <p>Barcode <strong>{{ barcode_value }}</strong> isn't in your inventory yet.</p>
+    <a class="btn" href="{{ url_for('add_item') }}">Add it</a>
+</div>
+{% endblock %}

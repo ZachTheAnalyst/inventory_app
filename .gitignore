@@ -1,0 +1,22 @@
+# runtime / dev data
+inventory.db
+*.db
+*.db-journal
+server.log
+
+# generated barcode images and uploaded item photos
+static/barcodes/*
+static/photos/*
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# local Claude Code tooling config (contains local permission/command history)
+.claude/
+
+# OS cruft
+.DS_Store
+Thumbs.db

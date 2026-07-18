@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Print Labels - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Print labels</h1>
+    <p class="subtitle">No printer connected yet — this generates a PDF sheet you can print anywhere (or send to the label printer once it's set up).</p>
+    <form method="POST" action="{{ url_for('generate_labels_pdf') }}">
+        <h2>Boxes</h2>
+        {% for box in boxes %}
+        <div class="checkbox-row">
+            <input type="checkbox" name="box_ids" value="{{ box['id'] }}" id="box-{{ box['id'] }}">
+            <label for="box-{{ box['id'] }}" style="margin:0;font-weight:400;">{{ box['number'] }} ({{ box['barcode'] }})</label>
+        </div>
+        {% endfor %}
+
+        <h2 style="margin-top:20px;">Items</h2>
+        {% for item in items %}
+        <div class="checkbox-row">
+            <input type="checkbox" name="item_ids" value="{{ item['id'] }}" id="item-{{ item['id'] }}">
+            <label for="item-{{ item['id'] }}" style="margin:0;font-weight:400;">{{ item['name'] }} ({{ item['barcode'] }})</label>
+        </div>
+        {% endfor %}
+
+        <div class="actions-row">
+            <button type="submit">Generate PDF (selected)</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

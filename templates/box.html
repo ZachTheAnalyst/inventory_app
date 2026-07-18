@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ box['number'] }} - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>{{ box['number'] }}</h1>
+    <p class="subtitle">Barcode <strong>{{ box['barcode'] }}</strong> · {{ box['category_name'] or 'Uncategorized' }}</p>
+    <img class="barcode-img" src="{{ url_for('static', filename='barcodes/' ~ box['barcode'] ~ '.png') }}" alt="Barcode for {{ box['barcode'] }}">
+    <form method="POST" action="{{ url_for('delete_box_route', barcode_value=box['barcode']) }}"
+          onsubmit="return confirm('Permanently delete &quot;{{ box['number'] }}&quot;? Any items inside will be unpacked, not deleted.');">
+        <button type="submit" class="btn-danger">Delete box</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Unpack an item</h2>
+    <p class="subtitle">Scan an item barcode to remove it from this box.</p>
+    <div class="scan-row">
+        <input type="text" id="unpack-scan-input" class="scan-input" placeholder="Scan item to unpack..." autocomplete="off">
+        <button type="button" id="camera-btn" class="btn-secondary">📷 Scan with camera</button>
+    </div>
+    <div id="camera-reader" class="camera-reader hidden"></div>
+    <div id="unpack-feedback" class="result-box"></div>
+</div>
+
+<div class="card">
+    <h2>Contents ({{ contents|length }})</h2>
+    {% if contents %}
+        {% for item in contents %}
+        <div class="item-list-row" id="row-{{ item['barcode'] }}">
+            <div>
+                <div class="item-name">{{ item['name'] }}</div>
+                <div class="item-meta">{{ item['category_name'] or 'Uncategorized' }} · {{ item['barcode'] }}</div>
+            </div>
+            <div class="actions-row">
+                <a class="btn btn-secondary" href="{{ url_for('item_detail', barcode_value=item['barcode']) }}">View</a>
+                <button type="button" class="btn-secondary btn-small unpack-btn" data-barcode="{{ item['barcode'] }}">Unpack</button>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">Nothing packed in this box yet.</div>
+    {% endif %}
+</div>
+
+<script src="{{ url_for('static', filename='vendor/html5-qrcode.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/camera_scan.js') }}"></script>
+<script>
+const feedback = document.getElementById('unpack-feedback');
+
+function showFeedback(message, className) {
+    feedback.textContent = message;
+    feedback.className = `result-box ${className}`;
+    feedback.style.display = 'block';
+}
+
+async function unpackItem(barcode) {
+    try {
+        const res = await fetch('/api/unpack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_barcode: barcode }),
+        });
+        const data = await res.json();
+        if (data.status === 'unpacked') {
+            showFeedback(`Unpacked "${data.item_name}".`, 'found');
+            const row = document.getElementById(`row-${barcode}`);
+            if (row) row.remove();
+        } else {
+            showFeedback(`Barcode ${data.barcode} isn't in your inventory.`, 'not-found');
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+document.getElementById('unpack-scan-input').addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    const code = e.target.value.trim();
+    if (!code) return;
+    await unpackItem(code);
+    e.target.value = '';
+    e.target.focus();
+});
+
+document.querySelectorAll('.unpack-btn').forEach((btn) => {
+    btn.addEventListener('click', () => unpackItem(btn.dataset.barcode));
+});
+
+initCameraScan('camera-btn', 'camera-reader', unpackItem);
+</script>
+{% endblock %}

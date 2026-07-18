@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ item['name'] }} - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>{{ item['name'] }}</h1>
+    <p class="subtitle">Barcode <strong>{{ item['barcode'] }}</strong></p>
+
+    {% if item['photo_path'] %}
+    <img class="item-photo" src="{{ url_for('static', filename='photos/' ~ item['photo_path']) }}" alt="Photo of {{ item['name'] }}">
+    {% endif %}
+
+    <img class="barcode-img" src="{{ url_for('static', filename='barcodes/' ~ item['barcode'] ~ '.png') }}" alt="Barcode for {{ item['barcode'] }}">
+
+    <div class="field-row"><span class="field-label">Category</span><span class="field-value">{{ item['category_name'] or 'Uncategorized' }}</span></div>
+    <div class="field-row"><span class="field-label">Date added</span><span class="field-value">{{ item['date_added'] }}</span></div>
+    <div class="field-row">
+        <span class="field-label">Status</span>
+        <span class="field-value">
+            {% if item['status'] == 'packed' %}
+                Packed in "{{ item['box_number'] }}" ({{ item['box_barcode'] }})
+            {% else %}
+                Not yet packed
+            {% endif %}
+        </span>
+    </div>
+
+    <div class="actions-row">
+        <a class="btn btn-secondary" href="{{ url_for('inventory') }}">Back to all items</a>
+        <a class="btn" href="{{ url_for('add_item') }}">Add another item</a>
+        <form method="POST" action="{{ url_for('delete_item_route', barcode_value=item['barcode']) }}"
+              onsubmit="return confirm('Permanently delete &quot;{{ item['name'] }}&quot;?');">
+            <button type="submit" class="btn-danger">Delete</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Pack Boxes - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Pack an item</h1>
+    <p class="subtitle">Scan the item, tap "Box", then scan the box it's going into.</p>
+
+    <div id="pending-item-banner" class="active-box-banner hidden">
+        Item ready: <strong id="pending-item-name"></strong>
+        <button id="box-btn" class="btn-small" type="button">Box</button>
+    </div>
+
+    <div class="scan-row">
+        <input type="text" id="scan-input" class="scan-input" placeholder="Scan the item to pack..." autofocus autocomplete="off">
+        <button type="button" id="camera-btn" class="btn-secondary">📷 Scan with camera</button>
+    </div>
+    <div id="camera-reader" class="camera-reader hidden"></div>
+</div>
+
+<div id="feedback" class="card result-box"></div>
+
+<script src="{{ url_for('static', filename='vendor/html5-qrcode.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/camera_scan.js') }}"></script>
+<script>
+const input = document.getElementById('scan-input');
+const feedback = document.getElementById('feedback');
+const banner = document.getElementById('pending-item-banner');
+const bannerName = document.getElementById('pending-item-name');
+const boxBtn = document.getElementById('box-btn');
+
+let pendingItemBarcode = null;
+let awaitingBox = false;
+
+function refocus() {
+    input.value = '';
+    input.focus();
+}
+document.addEventListener('click', refocus);
+window.addEventListener('load', refocus);
+
+function showFeedback(message, className) {
+    feedback.textContent = message;
+    feedback.className = `card result-box ${className}`;
+    feedback.style.display = 'block';
+}
+
+function resetPending() {
+    pendingItemBarcode = null;
+    awaitingBox = false;
+    banner.classList.add('hidden');
+    input.placeholder = 'Scan the item to pack...';
+}
+
+async function handleScannedCode(code) {
+    if (!code) return;
+
+    if (awaitingBox) {
+        try {
+            const res = await fetch('/api/pack', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_barcode: pendingItemBarcode, box_barcode: code }),
+            });
+            const data = await res.json();
+            if (data.status === 'packed') {
+                showFeedback(`Packed "${data.item_name}" into "${data.box_number}".`, 'found');
+                resetPending();
+            } else if (data.status === 'unknown_box') {
+                showFeedback(`Box ${data.barcode} isn't in your inventory. Scan a different box.`, 'not-found');
+            } else if (data.status === 'unknown_item') {
+                showFeedback(`Item ${data.barcode} isn't in your inventory.`, 'not-found');
+                resetPending();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    } else {
+        pendingItemBarcode = code;
+        bannerName.textContent = code;
+        banner.classList.remove('hidden');
+        awaitingBox = false;
+        showFeedback(`Scanned item ${code}. Tap "Box" then scan the box.`, 'found');
+    }
+
+    refocus();
+}
+
+input.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    handleScannedCode(input.value.trim());
+});
+
+boxBtn.addEventListener('click', () => {
+    awaitingBox = true;
+    input.placeholder = 'Now scan the box...';
+    showFeedback(`Ready — scan the box for "${pendingItemBarcode}".`, 'found');
+    refocus();
+});
+
+initCameraScan('camera-btn', 'camera-reader', handleScannedCode);
+</script>
+{% endblock %}

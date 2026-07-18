@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Look Up - Dorm Inventory{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Look up an item</h1>
+    <p class="subtitle">Scan a barcode to check if you own it and whether it's packed.</p>
+    <div class="scan-row">
+        <input type="text" id="scan-input" class="scan-input" placeholder="Waiting for scan..." autofocus autocomplete="off">
+        <button type="button" id="camera-btn" class="btn-secondary">📷 Scan with camera</button>
+    </div>
+    <div id="camera-reader" class="camera-reader hidden"></div>
+</div>
+
+<div id="state-not-in-inventory" class="card result-box not-found">
+    <h2>Not in inventory</h2>
+    <p>You've never added <strong id="nf-barcode"></strong>. <a href="{{ url_for('add_item') }}">Add it now?</a></p>
+</div>
+
+<div id="state-not-packed" class="card result-box packed-warn">
+    <h2 id="np-name"></h2>
+    <img id="np-photo" class="item-photo hidden" alt="">
+    <p>You own this, but it hasn't been scanned into a box yet.</p>
+    <div class="field-row"><span class="field-label">Barcode</span><span class="field-value" id="np-barcode"></span></div>
+    <div class="field-row"><span class="field-label">Category</span><span class="field-value" id="np-category"></span></div>
+</div>
+
+<div id="state-packed" class="card result-box found">
+    <h2 id="p-name"></h2>
+    <img id="p-photo" class="item-photo hidden" alt="">
+    <p>Packed in <strong id="p-box-number"></strong>.</p>
+    <div class="field-row"><span class="field-label">Barcode</span><span class="field-value" id="p-barcode"></span></div>
+    <div class="field-row"><span class="field-label">Category</span><span class="field-value" id="p-category"></span></div>
+    <div class="field-row"><span class="field-label">Box barcode</span><span class="field-value" id="p-box-barcode"></span></div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/html5-qrcode.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/camera_scan.js') }}"></script>
+<script>
+const input = document.getElementById('scan-input');
+const boxes = {
+    notInInventory: document.getElementById('state-not-in-inventory'),
+    notPacked: document.getElementById('state-not-packed'),
+    packed: document.getElementById('state-packed'),
+};
+
+function hideAll() {
+    Object.values(boxes).forEach(b => b.style.display = 'none');
+}
+
+function refocus() {
+    input.value = '';
+    input.focus();
+}
+
+function setPhoto(imgEl, photoPath) {
+    if (photoPath) {
+        imgEl.src = `/static/photos/${photoPath}`;
+        imgEl.classList.remove('hidden');
+    } else {
+        imgEl.classList.add('hidden');
+    }
+}
+
+document.addEventListener('click', refocus);
+window.addEventListener('load', refocus);
+
+async function handleScannedCode(code) {
+    if (!code) return;
+    hideAll();
+
+    try {
+        const res = await fetch(`/api/lookup/${encodeURIComponent(code)}`);
+        const data = await res.json();
+
+        if (data.state === 'not_in_inventory') {
+            document.getElementById('nf-barcode').textContent = data.barcode;
+            boxes.notInInventory.style.display = 'block';
+        } else if (data.state === 'not_packed') {
+            document.getElementById('np-name').textContent = data.name;
+            document.getElementById('np-barcode').textContent = data.barcode;
+            document.getElementById('np-category').textContent = data.category || '—';
+            setPhoto(document.getElementById('np-photo'), data.photo_path);
+            boxes.notPacked.style.display = 'block';
+        } else if (data.state === 'packed') {
+            document.getElementById('p-name').textContent = data.name;
+            document.getElementById('p-barcode').textContent = data.barcode;
+            document.getElementById('p-category').textContent = data.category || '—';
+            document.getElementById('p-box-number').textContent = data.box_number;
+            document.getElementById('p-box-barcode').textContent = data.box_barcode;
+            setPhoto(document.getElementById('p-photo'), data.photo_path);
+            boxes.packed.style.display = 'block';
+        }
+    } catch (err) {
+        console.error(err);
+    }
+
+    refocus();
+}
+
+input.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    handleScannedCode(input.value.trim());
+});
+
+initCameraScan('camera-btn', 'camera-reader', handleScannedCode);
+</script>
+{% endblock %}

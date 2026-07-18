@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Dorm Inventory{% endblock %}</title>
+<script>
+  if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('light-mode');
+  }
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav class="nav">
+    <a href="{{ url_for('index') }}" class="brand">📦 Inventory</a>
+    <div class="nav-links">
+        {% if current_user %}
+        <a href="{{ url_for('index') }}">Look Up</a>
+        <a href="{{ url_for('pack_page') }}">Pack Boxes</a>
+        <a href="{{ url_for('add_item') }}">Add Item</a>
+        <a href="{{ url_for('add_box') }}">Add Box</a>
+        <a href="{{ url_for('inventory') }}">All Items</a>
+        <a href="{{ url_for('boxes_list') }}">All Boxes</a>
+        <a href="{{ url_for('categories_page') }}">Categories</a>
+        <a href="{{ url_for('labels_page') }}">Print Labels</a>
+        <a href="{{ url_for('activity_log_page') }}">Activity</a>
+        <a href="{{ url_for('export') }}">Export</a>
+        {% if current_user['is_admin'] %}
+        <a href="{{ url_for('admin_users') }}">Admin</a>
+        {% endif %}
+        <a href="{{ url_for('account') }}">Account</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+        {% endif %}
+    </div>
+</nav>
+<main class="container">
+    {% if viewing_user %}
+    <div class="admin-view-banner">
+        Viewing <strong>{{ viewing_user['username'] }}</strong>'s inventory as admin.
+        <a href="{{ url_for('admin_exit_view') }}">Exit view</a>
+    </div>
+    {% endif %}
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash">
+                {% for m in messages %}<p>{{ m }}</p>{% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>
