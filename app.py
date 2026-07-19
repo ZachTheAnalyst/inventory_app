@@ -305,6 +305,8 @@ def item_detail(barcode_value):
     item = data.get_item_by_barcode(db, uid, barcode_value)
     if item is None:
         return render_template("not_found.html", barcode_value=barcode_value), 404
+    if not os.path.exists(os.path.join(BARCODE_DIR, f"{item['barcode']}.png")):
+        generate_barcode_image(item["barcode"])
     return render_template("item.html", item=item)
 
 
@@ -403,6 +405,8 @@ def box_detail(barcode_value):
     box = data.get_box_by_barcode(db, uid, barcode_value)
     if box is None:
         return render_template("not_found.html", barcode_value=barcode_value), 404
+    if not os.path.exists(os.path.join(BARCODE_DIR, f"{box['barcode']}.png")):
+        generate_barcode_image(box["barcode"])
     contents = data.box_contents(db, uid, box["id"])
     return render_template("box.html", box=box, contents=contents)
 

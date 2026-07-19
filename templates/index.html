@@ -22,6 +22,9 @@
     <p>You own this, but it hasn't been scanned into a box yet.</p>
     <div class="field-row"><span class="field-label">Barcode</span><span class="field-value" id="np-barcode"></span></div>
     <div class="field-row"><span class="field-label">Category</span><span class="field-value" id="np-category"></span></div>
+    <div class="actions-row">
+        <a id="np-view-link" class="btn btn-secondary" href="#">View</a>
+    </div>
 </div>
 
 <div id="state-packed" class="card result-box found">
@@ -31,11 +34,20 @@
     <div class="field-row"><span class="field-label">Barcode</span><span class="field-value" id="p-barcode"></span></div>
     <div class="field-row"><span class="field-label">Category</span><span class="field-value" id="p-category"></span></div>
     <div class="field-row"><span class="field-label">Box barcode</span><span class="field-value" id="p-box-barcode"></span></div>
+    <div class="actions-row">
+        <a id="p-view-link" class="btn btn-secondary" href="#">View</a>
+    </div>
 </div>
 
 <script src="{{ url_for('static', filename='vendor/html5-qrcode.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/camera_scan.js') }}"></script>
 <script>
+const ITEM_DETAIL_URL_TEMPLATE = "{{ url_for('item_detail', barcode_value='__BARCODE__') }}";
+
+function itemDetailUrl(barcode) {
+    return ITEM_DETAIL_URL_TEMPLATE.replace('__BARCODE__', encodeURIComponent(barcode));
+}
+
 const input = document.getElementById('scan-input');
 const boxes = {
     notInInventory: document.getElementById('state-not-in-inventory'),
@@ -80,6 +92,7 @@ async function handleScannedCode(code) {
             document.getElementById('np-barcode').textContent = data.barcode;
             document.getElementById('np-category').textContent = data.category || '—';
             setPhoto(document.getElementById('np-photo'), data.photo_path);
+            document.getElementById('np-view-link').href = itemDetailUrl(data.barcode);
             boxes.notPacked.style.display = 'block';
         } else if (data.state === 'packed') {
             document.getElementById('p-name').textContent = data.name;
@@ -88,6 +101,7 @@ async function handleScannedCode(code) {
             document.getElementById('p-box-number').textContent = data.box_number;
             document.getElementById('p-box-barcode').textContent = data.box_barcode;
             setPhoto(document.getElementById('p-photo'), data.photo_path);
+            document.getElementById('p-view-link').href = itemDetailUrl(data.barcode);
             boxes.packed.style.display = 'block';
         }
     } catch (err) {
