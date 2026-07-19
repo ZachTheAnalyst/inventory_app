@@ -22,7 +22,6 @@ import db as data
 from print_service import print_label
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "inventory.db")
 BARCODE_DIR = os.path.join(BASE_DIR, "static", "barcodes")
 PHOTO_DIR = os.path.join(BASE_DIR, "static", "photos")
 os.makedirs(BARCODE_DIR, exist_ok=True)
@@ -60,7 +59,7 @@ def generate_password():
 
 def get_db():
     if "db" not in g:
-        g.db = data.get_connection(DB_PATH)
+        g.db = data.get_connection()
     return g.db
 
 
@@ -72,7 +71,7 @@ def close_db(exception=None):
 
 
 def init_db():
-    conn = data.get_connection(DB_PATH)
+    conn = data.get_connection()
     data.init_schema(conn)
     conn.close()
 
@@ -217,7 +216,7 @@ def account():
 @click.option("--admin", "is_admin", is_flag=True, default=False, help="Grant admin privileges.")
 def create_user_cmd(username, is_admin):
     """Creates a new account with a randomly generated password, shown once."""
-    conn = data.get_connection(DB_PATH)
+    conn = data.get_connection()
     data.init_schema(conn)
     if data.get_user_by_username(conn, username):
         click.echo(f"Username '{username}' already exists.")

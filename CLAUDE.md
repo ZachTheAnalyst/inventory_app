@@ -7,7 +7,7 @@ Read `SPEC.md` in this same directory before making any changes — it's the sou
 
 ## Tech stack
 - **Backend:** Flask (Python), no other web framework
-- **Database:** start on SQLite for local dev (`inventory.db`, matches the existing scaffold), but write all SQL through a thin data-access layer so swapping to Postgres later (via `psycopg2`) doesn't touch route logic. Don't hardcode SQLite-only syntax in routes.
+- **Database:** Postgres via `psycopg2`, connecting through the `DATABASE_URL` environment variable (no default/fallback — the app raises clearly if it's unset). All SQL lives in `db.py`; route code in `app.py` never touches SQL directly.
 - **Barcodes:** `python-barcode` (Code128), `reportlab` for the printable label PDF sheet — both already used in the existing scaffold, keep using them rather than swapping libraries.
 - **Auth:** Flask's built-in `session`, `werkzeug.security.generate_password_hash` / `check_password_hash`. No JWTs, no third-party auth libraries — this is a small personal-scale app.
 - **Frontend:** server-rendered Jinja templates + vanilla JS for scan-input handling (no React/build step) — matches the existing scaffold's `templates/` structure.
@@ -29,5 +29,5 @@ After implementing each flow in `SPEC.md`, verify it with Flask's test client (`
 
 ## Explicitly out of scope for this build
 - Wiring `print_service.py` to a real printer (no printer owned yet)
-- Deploying to Postgres/Render/Supabase (local SQLite dev only, for now)
+- Deploying to Render/Supabase/etc. (Postgres itself is in use locally via `DATABASE_URL`, but hosting/deployment is still a separate step)
 - Self-service signup — accounts are always admin-created
