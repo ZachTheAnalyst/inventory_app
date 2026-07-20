@@ -2,7 +2,6 @@ import csv
 import io
 import os
 import random
-import uuid
 from datetime import datetime
 from functools import wraps
 
@@ -19,13 +18,12 @@ from reportlab.pdfgen import canvas as pdf_canvas
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import db as data
+import storage
 from print_service import print_label
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BARCODE_DIR = os.path.join(BASE_DIR, "static", "barcodes")
-PHOTO_DIR = os.path.join(BASE_DIR, "static", "photos")
 os.makedirs(BARCODE_DIR, exist_ok=True)
-os.makedirs(PHOTO_DIR, exist_ok=True)
 
 app = Flask(__name__)
 app.secret_key = "dev-key-change-if-you-deploy-this-publicly"
@@ -74,6 +72,12 @@ def init_db():
     conn = data.get_connection()
     data.init_schema(conn)
     conn.close()
+
+
+def bootstrap():
+    """Full app startup: DB schema + Supabase storage bucket, both idempotent."""
+    init_db()
+    storage.ensure_bucket()
 
 
 # ---------- auth helpers ----------
@@ -151,15 +155,6 @@ def generate_barcode_image(code_value):
     filename_no_ext = os.path.join(BARCODE_DIR, code_value)
     saved_path = code128(code_value, writer=writer).save(filename_no_ext)
     return os.path.basename(saved_path)
-
-
-def save_photo(user_id, file_storage):
-    ext = os.path.splitext(file_storage.filename)[1].lower()
-    if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
-        ext = ".jpg"
-    filename = f"{user_id}_{uuid.uuid4().hex}{ext}"
-    file_storage.save(os.path.join(PHOTO_DIR, filename))
-    return filename
 
 
 # ---------- Auth routes ----------
@@ -282,7 +277,7 @@ def add_item():
         photo_path = None
         photo = request.files.get("photo")
         if photo and photo.filename:
-            photo_path = save_photo(uid, photo)
+            photo_path = storage.upload_photo(uid, photo)
 
         code_value = data.next_barcode(db, uid, ITEM_PREFIX, "items")
         generate_barcode_image(code_value)
@@ -767,7 +762,7 @@ def generate_labels_pdf():
 
 
 if __name__ == "__main__":
-    init_db()
+    bootstrap()
     # ssl_context="adhoc" (needs pyOpenSSL) serves a self-signed HTTPS cert so
     # phone browsers on the LAN treat this as a secure context -- required
     # for camera access (getUserMedia) from any device other than localhost.

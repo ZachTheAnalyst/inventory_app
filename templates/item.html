@@ -6,7 +6,7 @@
     <p class="subtitle">Barcode <strong>{{ item['barcode'] }}</strong></p>
 
     {% if item['photo_path'] %}
-    <img class="item-photo" src="{{ url_for('static', filename='photos/' ~ item['photo_path']) }}" alt="Photo of {{ item['name'] }}">
+    <img class="item-photo" src="{{ item['photo_path'] }}" alt="Photo of {{ item['name'] }}">
     {% endif %}
 
     <img class="barcode-img" src="{{ url_for('static', filename='barcodes/' ~ item['barcode'] ~ '.png') }}" alt="Barcode for {{ item['barcode'] }}">

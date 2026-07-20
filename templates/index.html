@@ -66,7 +66,7 @@ function refocus() {
 
 function setPhoto(imgEl, photoPath) {
     if (photoPath) {
-        imgEl.src = `/static/photos/${photoPath}`;
+        imgEl.src = photoPath;
         imgEl.classList.remove('hidden');
     } else {
         imgEl.classList.add('hidden');
