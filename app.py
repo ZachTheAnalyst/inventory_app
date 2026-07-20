@@ -593,6 +593,32 @@ def admin_view_user(user_id):
     return redirect(url_for("index"))
 
 
+@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_user(user_id):
+    db = get_db()
+    admin_user = get_current_user()
+    target = data.get_user_by_id(db, user_id)
+
+    if target is None:
+        flash("Account not found.")
+        return redirect(url_for("admin_users"))
+    if target["id"] == admin_user["id"]:
+        flash("You can't delete your own account.")
+        return redirect(url_for("admin_users"))
+
+    username = target["username"]
+    data.delete_user_cascade(db, user_id)
+    data.log_activity(
+        db, admin_user["id"], "user_deleted", None,
+        f"Deleted user account '{username}' (id={user_id}) and all its items, boxes, "
+        f"categories, and activity log entries",
+        None, now(),
+    )
+    flash(f"Deleted account '{username}' and all associated data.")
+    return redirect(url_for("admin_users"))
+
+
 @app.route("/admin/exit_view")
 @login_required
 def admin_exit_view():

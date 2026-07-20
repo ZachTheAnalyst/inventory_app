@@ -21,7 +21,15 @@
             <div class="item-name">{{ user['username'] }} {% if user['is_admin'] %}<span class="badge">admin</span>{% endif %}</div>
             <div class="item-meta">Created {{ user['date_created'] }}</div>
         </div>
-        <a class="btn btn-secondary" href="{{ url_for('admin_view_user', user_id=user['id']) }}">View inventory</a>
+        <div class="actions-row">
+            <a class="btn btn-secondary" href="{{ url_for('admin_view_user', user_id=user['id']) }}">View inventory</a>
+            {% if user['id'] != current_user['id'] %}
+            <form method="POST" action="{{ url_for('admin_delete_user', user_id=user['id']) }}"
+                  onsubmit="return confirm('Are you sure you want to delete account {{ user['username'] }}?');">
+                <button type="submit" class="btn-danger">Delete</button>
+            </form>
+            {% endif %}
+        </div>
     </div>
     {% endfor %}
 </div>

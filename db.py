@@ -135,6 +135,26 @@ def update_password(db, user_id, password_hash):
     db.commit()
 
 
+def delete_user_cascade(db, user_id):
+    """Permanently deletes a user account and everything scoped to it: items,
+    boxes, categories, and their own activity log entries. All the FKs back
+    to users(id) are NOT NULL with no ON DELETE clause, so those rows have to
+    go before the user row does. Any activity_log rows in OTHER accounts
+    where this user was the acting admin (performed_by_user_id) are kept,
+    just with that reference nulled out -- same "keep the row, drop the
+    now-dangling reference" approach already used for deleted items/boxes."""
+    db.execute("DELETE FROM items WHERE user_id = %s", (user_id,))
+    db.execute("DELETE FROM boxes WHERE user_id = %s", (user_id,))
+    db.execute("DELETE FROM categories WHERE user_id = %s", (user_id,))
+    db.execute("DELETE FROM activity_log WHERE user_id = %s", (user_id,))
+    db.execute(
+        "UPDATE activity_log SET performed_by_user_id = NULL WHERE performed_by_user_id = %s",
+        (user_id,),
+    )
+    db.execute("DELETE FROM users WHERE id = %s", (user_id,))
+    db.commit()
+
+
 # ---------- categories ----------
 
 def list_categories(db, user_id):
