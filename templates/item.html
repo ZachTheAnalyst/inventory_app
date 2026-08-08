@@ -11,7 +11,16 @@
 
     <img class="barcode-img" src="{{ url_for('static', filename='barcodes/' ~ item['barcode'] ~ '.png') }}" alt="Barcode for {{ item['barcode'] }}">
 
-    <div class="field-row"><span class="field-label">Category</span><span class="field-value">{{ item['category_name'] or 'Uncategorized' }}</span></div>
+    <div class="field-row">
+        <span class="field-label">Category</span>
+        <span class="field-value">
+            {% if item['category_name'] %}
+            <span class="category-tag" style="{{ category_badge_style(item['category_color']) }}">{{ item['category_name'] }}</span>
+            {% else %}
+            Uncategorized
+            {% endif %}
+        </span>
+    </div>
     <div class="field-row"><span class="field-label">Date added</span><span class="field-value">{{ item['date_added'] }}</span></div>
     <div class="field-row">
         <span class="field-label">Status</span>

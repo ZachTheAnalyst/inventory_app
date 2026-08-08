@@ -4,8 +4,12 @@
 <div class="card">
     <h1>Accounts</h1>
     <form method="POST" action="{{ url_for('admin_create_user') }}">
-        <label for="username">New username</label>
-        <input type="text" id="username" name="username" required>
+        <label for="full_name">Full name</label>
+        <input type="text" id="full_name" name="full_name" required placeholder="e.g. Zachary Arnold">
+
+        <label for="room_number">Room number</label>
+        <input type="text" id="room_number" name="room_number" required placeholder="e.g. Oak 407D">
+
         <div class="checkbox-row">
             <input type="checkbox" id="is_admin" name="is_admin">
             <label for="is_admin" style="margin:0;font-weight:400;">Grant admin</label>
@@ -18,14 +22,14 @@
     {% for user in users %}
     <div class="item-list-row">
         <div>
-            <div class="item-name">{{ user['username'] }} {% if user['is_admin'] %}<span class="badge">admin</span>{% endif %}</div>
-            <div class="item-meta">Created {{ user['date_created'] }}</div>
+            <div class="item-name">{{ user['full_name'] }} {% if user['is_admin'] %}<span class="badge">admin</span>{% endif %}</div>
+            <div class="item-meta">Room {{ user['room_number'] }} · Created {{ user['date_created'] }}</div>
         </div>
         <div class="actions-row">
             <a class="btn btn-secondary" href="{{ url_for('admin_view_user', user_id=user['id']) }}">View inventory</a>
             {% if user['id'] != current_user['id'] %}
             <form method="POST" action="{{ url_for('admin_delete_user', user_id=user['id']) }}"
-                  onsubmit="return confirm('Are you sure you want to delete account {{ user['username'] }}?');">
+                  onsubmit="return confirm('Are you sure you want to delete account {{ user['full_name'] }}?');">
                 <button type="submit" class="btn-danger">Delete</button>
             </form>
             {% endif %}

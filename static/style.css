@@ -293,3 +293,20 @@ button:hover, .btn:hover { background: var(--blue-dark); }
     width: 100%;
     display: block;
 }
+
+.color-select {
+    width: auto;
+    flex: 0 0 auto;
+    min-width: 110px;
+    margin-bottom: 0;
+    font-weight: 600;
+}
+
+.category-tag {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    vertical-align: middle;
+}

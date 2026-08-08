@@ -8,7 +8,14 @@
         <div class="item-list-row">
             <div>
                 <div class="item-name">{{ box['number'] }}</div>
-                <div class="item-meta">{{ box['category_name'] or 'Uncategorized' }} · {{ box['item_count'] }} item(s) · {{ box['barcode'] }}</div>
+                <div class="item-meta">
+                    {% if box['category_name'] %}
+                    <span class="category-tag" style="{{ category_badge_style(box['category_color']) }}">{{ box['category_name'] }}</span>
+                    {% else %}
+                    Uncategorized
+                    {% endif %}
+                    · {{ box['item_count'] }} item(s) · {{ box['barcode'] }}
+                </div>
             </div>
             <a class="btn btn-secondary" href="{{ url_for('box_detail', barcode_value=box['barcode']) }}">View</a>
         </div>

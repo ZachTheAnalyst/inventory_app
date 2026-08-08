@@ -12,6 +12,7 @@ from flask import (
 )
 import barcode
 from barcode.writer import ImageWriter
+from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas as pdf_canvas
@@ -36,6 +37,24 @@ PASSWORD_WORDS = [
     "ivory", "jade", "kite", "lumen", "maple", "north", "onyx", "pixel",
     "quartz", "raven", "storm", "tide", "umbra", "violet", "willow", "zephyr",
 ]
+
+# The 10 preset category colors. Text color per swatch was picked with the
+# YIQ formula (YIQ = R*299 + G*587 + B*114, /1000; >=128 -> black, else white)
+# against each hex, not eyeballed -- Orange and Yellow are the only ones
+# bright enough to need black text.
+CATEGORY_COLORS = {
+    "Red":    {"hex": "#dc2626", "text": "#ffffff"},
+    "Orange": {"hex": "#f97316", "text": "#000000"},
+    "Yellow": {"hex": "#eab308", "text": "#000000"},
+    "Green":  {"hex": "#16a34a", "text": "#ffffff"},
+    "Teal":   {"hex": "#0d9488", "text": "#ffffff"},
+    "Blue":   {"hex": "#2563eb", "text": "#ffffff"},
+    "Purple": {"hex": "#9333ea", "text": "#ffffff"},
+    "Pink":   {"hex": "#db2777", "text": "#ffffff"},
+    "Brown":  {"hex": "#964b00", "text": "#ffffff"},
+    "Gray":   {"hex": "#6b7280", "text": "#ffffff"},
+}
+DEFAULT_CATEGORY_COLOR = "Gray"
 
 
 def today():
@@ -131,29 +150,53 @@ def admin_required(view):
 
 @app.context_processor
 def inject_view_context():
+    context = {"CATEGORY_COLORS": CATEGORY_COLORS}
     if "user_id" not in session:
-        return {}
+        return context
     viewing_id = session.get("view_as_user_id")
     viewing_user = None
     if viewing_id and viewing_id != session["user_id"]:
         viewing_user = data.get_user_by_id(get_db(), viewing_id)
-    return {"current_user": get_current_user(), "viewing_user": viewing_user}
+    context.update({"current_user": get_current_user(), "viewing_user": viewing_user})
+    return context
+
+
+@app.template_global()
+def category_badge_style(color_name):
+    """Inline CSS for a category tag/badge, e.g. style="background:#2563eb;color:#ffffff;"."""
+    swatch = CATEGORY_COLORS.get(color_name, CATEGORY_COLORS[DEFAULT_CATEGORY_COLOR])
+    return f"background:{swatch['hex']};color:{swatch['text']};"
 
 
 # ---------- misc helpers ----------
 
 def generate_barcode_image(code_value):
-    """Creates a Code128 PNG for the given value in static/barcodes/, returns filename."""
+    """Creates a Code128 PNG for the given value in static/barcodes/, returns filename.
+
+    IMPORTANT: python-barcode's Barcode.render() rebuilds its writer options
+    from the class's own default_writer_options on every render, ignoring
+    anything set on the writer instance beforehand via writer.set_options()
+    -- so any customization has to be passed as the `options=` kwarg to
+    save()/render() itself, not pre-set on the writer object (that was a
+    dead no-op in this codebase's earlier versions; barcodes were silently
+    always using the library defaults: module_height=15.0, module_width=0.2,
+    font_size=10, text_distance=5.0, quiet_zone=6.5).
+
+    module_height=23.3 / module_width=0.30 below are exactly 25% taller /
+    ~37% wider than that true previous default, measured empirically (not
+    just plugged into the size formula) since font_size/text_distance/
+    quiet_zone also affect the final rendered dimensions."""
     code128 = barcode.get_barcode_class("code128")
     writer = ImageWriter()
-    writer.set_options({
-        "module_height": 12.0,
+    options = {
+        "module_height": 23.3,
+        "module_width": 0.30,
         "font_size": 8,
         "text_distance": 3,
         "quiet_zone": 2,
-    })
+    }
     filename_no_ext = os.path.join(BARCODE_DIR, code_value)
-    saved_path = code128(code_value, writer=writer).save(filename_no_ext)
+    saved_path = code128(code_value, writer=writer).save(filename_no_ext, options=options)
     return os.path.basename(saved_path)
 
 
@@ -162,12 +205,12 @@ def generate_barcode_image(code_value):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        full_name = request.form.get("full_name", "").strip()
         password = request.form.get("password", "")
         db = get_db()
-        user = data.get_user_by_username(db, username)
+        user = data.get_user_by_full_name(db, full_name)
         if user is None or not check_password_hash(user["password_hash"], password):
-            flash("Invalid username or password.")
+            flash("Invalid name or password.")
             return redirect(url_for("login"))
         session.clear()
         session["user_id"] = user["id"]
@@ -207,21 +250,27 @@ def account():
 # ---------- CLI ----------
 
 @app.cli.command("create-user")
-@click.argument("username")
+@click.argument("full_name")
+@click.argument("room_number")
 @click.option("--admin", "is_admin", is_flag=True, default=False, help="Grant admin privileges.")
-def create_user_cmd(username, is_admin):
-    """Creates a new account with a randomly generated password, shown once."""
+def create_user_cmd(full_name, room_number, is_admin):
+    """Creates a new account with a randomly generated password, shown once.
+
+    FULL_NAME doubles as the login name -- must be unique account-wide.
+    Quote it if it contains spaces, e.g. flask create-user "Zachary Arnold" "Oak 407D"
+    """
     conn = data.get_connection()
     data.init_schema(conn)
-    if data.get_user_by_username(conn, username):
-        click.echo(f"Username '{username}' already exists.")
+    if data.get_user_by_full_name(conn, full_name):
+        click.echo(f"An account named '{full_name}' already exists. Names must be unique -- "
+                    f"try adding a middle initial or similar to tell them apart.")
         conn.close()
         return
     password = generate_password()
     password_hash = generate_password_hash(password)
-    data.create_user(conn, username, password_hash, is_admin, today())
+    data.create_user(conn, full_name, room_number, password_hash, is_admin, today())
     conn.close()
-    click.echo(f"Created user '{username}'.")
+    click.echo(f"Created user '{full_name}' (room {room_number}).")
     click.echo(f"Password (shown once, will not be recoverable): {password}")
 
 
@@ -444,13 +493,17 @@ def categories_page():
 
     if request.method == "POST":
         name = request.form.get("name", "").strip()
+        color = request.form.get("color", "").strip()
+        if color not in CATEGORY_COLORS:
+            color = DEFAULT_CATEGORY_COLOR
         if not name:
             flash("Category name is required.")
         elif data.get_category_by_name(db, uid, name):
             flash("A category with that name already exists.")
         else:
-            data.create_category(db, uid, name)
-            data.log_activity(db, uid, "category_created", None, f"Created category '{name}'",
+            data.create_category(db, uid, name, color)
+            data.log_activity(db, uid, "category_created", None,
+                               f"Created category '{name}' ({color})",
                                acting_admin_id(), now())
         return redirect(url_for("categories_page"))
 
@@ -469,12 +522,15 @@ def rename_category_route(category_id):
         return redirect(url_for("categories_page"))
 
     new_name = request.form.get("name", "").strip()
+    color = request.form.get("color", "").strip()
+    if color not in CATEGORY_COLORS:
+        color = DEFAULT_CATEGORY_COLOR
     if not new_name:
         flash("Category name is required.")
         return redirect(url_for("categories_page"))
 
-    data.rename_category(db, uid, category_id, new_name)
-    flash(f"Renamed category to '{new_name}'.")
+    data.update_category(db, uid, category_id, new_name, color)
+    flash(f"Updated category '{new_name}'.")
     return redirect(url_for("categories_page"))
 
 
@@ -566,20 +622,25 @@ def admin_users():
 @admin_required
 def admin_create_user():
     db = get_db()
-    username = request.form.get("username", "").strip()
+    full_name = request.form.get("full_name", "").strip()
+    room_number = request.form.get("room_number", "").strip()
     is_admin = request.form.get("is_admin") == "on"
 
-    if not username:
-        flash("Username is required.")
+    if not full_name:
+        flash("Full name is required.")
         return redirect(url_for("admin_users"))
-    if data.get_user_by_username(db, username):
-        flash("That username is already taken.")
+    if not room_number:
+        flash("Room number is required.")
+        return redirect(url_for("admin_users"))
+    if data.get_user_by_full_name(db, full_name):
+        flash(f"An account named '{full_name}' already exists. Names must be unique -- "
+              f"try adding a middle initial or similar to tell them apart.")
         return redirect(url_for("admin_users"))
 
     password = generate_password()
     password_hash = generate_password_hash(password)
-    data.create_user(db, username, password_hash, is_admin, today())
-    flash(f"Created account '{username}'. Password (shown once): {password}")
+    data.create_user(db, full_name, room_number, password_hash, is_admin, today())
+    flash(f"Created account '{full_name}' (room {room_number}). Password (shown once): {password}")
     return redirect(url_for("admin_users"))
 
 
@@ -607,15 +668,15 @@ def admin_delete_user(user_id):
         flash("You can't delete your own account.")
         return redirect(url_for("admin_users"))
 
-    username = target["username"]
+    full_name = target["full_name"]
     data.delete_user_cascade(db, user_id)
     data.log_activity(
         db, admin_user["id"], "user_deleted", None,
-        f"Deleted user account '{username}' (id={user_id}) and all its items, boxes, "
+        f"Deleted user account '{full_name}' (id={user_id}) and all its items, boxes, "
         f"categories, and activity log entries",
         None, now(),
     )
-    flash(f"Deleted account '{username}' and all associated data.")
+    flash(f"Deleted account '{full_name}' and all associated data.")
     return redirect(url_for("admin_users"))
 
 
@@ -725,27 +786,121 @@ def labels_page():
     return render_template("labels.html", items=items, boxes=boxes)
 
 
+def _fit_text(c, text, font_name, font_size, max_width):
+    """Truncates text with an ellipsis so it renders within max_width at the given font."""
+    text = text or ""
+    if c.stringWidth(text, font_name, font_size) <= max_width:
+        return text
+    while text and c.stringWidth(text + "…", font_name, font_size) > max_width:
+        text = text[:-1]
+    return (text + "…") if text else ""
+
+
+def draw_label(c, x, y, label_w, label_h, entry, owner_name, owner_room, img_path):
+    """Draws one Avery 5160/18160 label (2.625in x 1in), bottom-left corner at (x, y):
+    top row is the name (left) + category tag (right, colored); second row is the
+    account holder's name (bold) and room number (bold, smaller) stacked and
+    right-aligned; the bottom is the barcode (with its code text already embedded
+    under the bars by generate_barcode_image). The barcode and owner info are the
+    priority elements -- the name/category row uses the smallest font on the label
+    so they get as much of the fixed 1in height as possible."""
+    margin_x = 4
+    top = y + label_h
+    name_font = 5.5
+    tag_pad = 3
+
+    # Category tag is measured first so the name knows how much width is left for it.
+    tag_w, tag_text, swatch = 0, None, None
+    if entry.get("category_name"):
+        swatch = CATEGORY_COLORS.get(entry.get("category_color"), CATEGORY_COLORS[DEFAULT_CATEGORY_COLOR])
+        tag_text = _fit_text(c, entry["category_name"], "Helvetica-Bold", name_font, label_w * 0.4)
+        tag_w = c.stringWidth(tag_text, "Helvetica-Bold", name_font) + tag_pad * 2
+
+    # --- Row 1: name (left) + category tag (right) ---
+    name_baseline = top - 3 - name_font
+    name_max_w = label_w - margin_x * 2 - (tag_w + 4 if tag_w else 0)
+    name_text = _fit_text(c, entry["label"], "Helvetica-Bold", name_font, name_max_w)
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", name_font)
+    c.drawString(x + margin_x, name_baseline, name_text)
+
+    if tag_text:
+        tag_h = name_font + 3
+        tag_x = x + label_w - margin_x - tag_w
+        tag_y = name_baseline - 1.5
+        c.setFillColor(colors.HexColor(swatch["hex"]))
+        c.roundRect(tag_x, tag_y, tag_w, tag_h, 2, stroke=0, fill=1)
+        c.setFillColor(colors.HexColor(swatch["text"]))
+        c.drawString(tag_x + tag_pad, tag_y + 2, tag_text)
+        c.setFillColor(colors.black)
+
+    row1_band_bottom = name_baseline - 1
+
+    # --- Row 2: owner name (bold) + room number (bold, smaller), right-aligned, stacked ---
+    owner_font = 6
+    room_font = 4.5
+    right_edge = x + label_w - margin_x
+    available_w = label_w - margin_x * 2
+
+    owner_baseline = row1_band_bottom - 1 - owner_font
+    owner_text = _fit_text(c, owner_name, "Helvetica-Bold", owner_font, available_w)
+    c.setFont("Helvetica-Bold", owner_font)
+    c.drawRightString(right_edge, owner_baseline, owner_text)
+
+    room_baseline = owner_baseline - 0.8 - room_font
+    room_text = _fit_text(c, owner_room, "Helvetica-Bold", room_font, available_w)
+    c.setFont("Helvetica-Bold", room_font)
+    c.drawRightString(right_edge, room_baseline, room_text)
+
+    row2_band_bottom = room_baseline - 1
+
+    # --- Bottom: barcode image, its code text already embedded under the bars ---
+    barcode_top = row2_band_bottom - 1
+    barcode_bottom_margin = 2
+    img_w = label_w - margin_x * 2
+    img_h = max(barcode_top - (y + barcode_bottom_margin), 4)
+    c.drawImage(img_path, x + margin_x, y + barcode_bottom_margin, width=img_w, height=img_h,
+                preserveAspectRatio=True, anchor='s')
+
+
 @app.route("/labels/generate", methods=["POST"])
 @login_required
 def generate_labels_pdf():
-    """Builds a printable PDF sheet of barcode labels (Avery 5160 layout: 3 cols x 10 rows)."""
+    """Builds a printable PDF sheet of barcode labels (Avery 5160/18160 layout: 3 cols x 10 rows).
+    See draw_label() for the per-label layout."""
     db = get_db()
     uid = effective_user_id()
     item_ids = request.form.getlist("item_ids")
     box_ids = request.form.getlist("box_ids")
 
+    owner = data.get_user_by_id(db, uid)
+    owner_name = owner["full_name"] if owner else ""
+    owner_room = owner["room_number"] if owner else ""
+
+    def item_entry(item):
+        return {
+            "label": item["name"], "barcode": item["barcode"],
+            "category_name": item["category_name"], "category_color": item["category_color"],
+        }
+
+    def box_entry(box):
+        return {
+            "label": box["number"], "barcode": box["barcode"],
+            "category_name": box["category_name"], "category_color": box["category_color"],
+        }
+
     rows = []
     for iid in item_ids:
         item = data.get_item_by_id(db, uid, int(iid))
         if item:
-            rows.append({"label": item["name"], "barcode": item["barcode"]})
+            rows.append(item_entry(item))
     for bid in box_ids:
         box = data.get_box_by_id(db, uid, int(bid))
         if box:
-            rows.append({"label": box["number"], "barcode": box["barcode"]})
+            rows.append(box_entry(box))
     if not item_ids and not box_ids:
-        rows = [{"label": i["name"], "barcode": i["barcode"]} for i in data.list_items(db, uid)]
-        rows += [{"label": b["number"], "barcode": b["barcode"]} for b in data.list_boxes(db, uid)]
+        rows = [item_entry(i) for i in data.list_items(db, uid)]
+        rows += [box_entry(b) for b in data.list_boxes(db, uid)]
 
     buf = io.BytesIO()
     c = pdf_canvas.Canvas(buf, pagesize=letter)
@@ -764,14 +919,7 @@ def generate_labels_pdf():
 
         x = margin_left + col * label_w
         y = letter[1] - margin_top - (row + 1) * label_h
-
-        c.setFont("Helvetica-Bold", 7)
-        c.drawString(x + 4, y + label_h - 12, entry["label"][:28])
-
-        img_w = label_w - 12
-        img_h = label_h - 24
-        c.drawImage(img_path, x + 6, y + 4, width=img_w, height=img_h,
-                    preserveAspectRatio=True, anchor='sw')
+        draw_label(c, x, y, label_w, label_h, entry, owner_name, owner_room, img_path)
 
         col += 1
         if col >= cols:

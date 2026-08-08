@@ -6,6 +6,14 @@
     <form method="POST">
         <label for="name">New category name</label>
         <input type="text" id="name" name="name" required placeholder="e.g. Electronics">
+
+        <label for="color">Color</label>
+        <select name="color" id="color" class="color-select">
+            {% for color_name, swatch in CATEGORY_COLORS.items() %}
+            <option value="{{ color_name }}" style="background:{{ swatch['hex'] }};color:{{ swatch['text'] }};">{{ color_name }}</option>
+            {% endfor %}
+        </select>
+
         <button type="submit">Add category</button>
     </form>
 </div>
@@ -16,7 +24,13 @@
         <div class="item-list-row">
             <form method="POST" action="{{ url_for('rename_category_route', category_id=category['id']) }}" class="inline-form">
                 <input type="text" name="name" value="{{ category['name'] }}">
-                <button type="submit" class="btn-secondary btn-small">Rename</button>
+                <select name="color" class="color-select">
+                    {% for color_name, swatch in CATEGORY_COLORS.items() %}
+                    <option value="{{ color_name }}" style="background:{{ swatch['hex'] }};color:{{ swatch['text'] }};"
+                            {% if category['color'] == color_name %}selected{% endif %}>{{ color_name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-secondary btn-small">Save</button>
             </form>
             <form method="POST" action="{{ url_for('delete_category_route', category_id=category['id']) }}"
                   onsubmit="return confirm('Delete category &quot;{{ category['name'] }}&quot;? Items/boxes in it become Uncategorized.');">

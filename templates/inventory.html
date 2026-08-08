@@ -38,7 +38,12 @@
             <div>
                 <div class="item-name">{{ item['name'] }}</div>
                 <div class="item-meta">
-                    {{ item['category_name'] or 'Uncategorized' }} · {{ item['barcode'] }}
+                    {% if item['category_name'] %}
+                    <span class="category-tag" style="{{ category_badge_style(item['category_color']) }}">{{ item['category_name'] }}</span>
+                    {% else %}
+                    Uncategorized
+                    {% endif %}
+                    · {{ item['barcode'] }}
                     · {{ 'In ' ~ item['box_number'] if item['status'] == 'packed' else 'Not packed' }}
                 </div>
             </div>

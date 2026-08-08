@@ -52,7 +52,8 @@ def get_connection(dsn=None):
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
+    full_name TEXT UNIQUE NOT NULL,
+    room_number TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     is_admin INTEGER NOT NULL DEFAULT 0,
     date_created TEXT NOT NULL
@@ -62,6 +63,7 @@ CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     name TEXT NOT NULL,
+    color TEXT NOT NULL DEFAULT 'Gray',
     UNIQUE(user_id, name)
 );
 
@@ -99,27 +101,56 @@ CREATE TABLE IF NOT EXISTS activity_log (
 );
 """
 
+# Forward-migrates a `users` table created before full_name/room_number
+# existed (back when the column was called `username` and there was no
+# room_number at all). No-ops on a table that's already current, and no-ops
+# on a brand-new table (SCHEMA above already creates it in the new shape).
+USERS_MIGRATION = """
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'users' AND column_name = 'username'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'users' AND column_name = 'full_name'
+    ) THEN
+        ALTER TABLE users RENAME COLUMN username TO full_name;
+    END IF;
+END $$;
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS room_number TEXT NOT NULL DEFAULT 'Unknown';
+ALTER TABLE users ALTER COLUMN room_number DROP DEFAULT;
+"""
+
+# Same idea for categories.color, added after categories already existed.
+CATEGORIES_MIGRATION = """
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS color TEXT NOT NULL DEFAULT 'Gray';
+"""
+
 
 def init_schema(conn):
     conn.executescript(SCHEMA)
+    conn.executescript(USERS_MIGRATION)
+    conn.executescript(CATEGORIES_MIGRATION)
     conn.commit()
 
 
 # ---------- users ----------
 
-def create_user(db, username, password_hash, is_admin, date_created):
+def create_user(db, full_name, room_number, password_hash, is_admin, date_created):
     cur = db.execute(
-        """INSERT INTO users (username, password_hash, is_admin, date_created)
-           VALUES (%s, %s, %s, %s) RETURNING id""",
-        (username, password_hash, 1 if is_admin else 0, date_created),
+        """INSERT INTO users (full_name, room_number, password_hash, is_admin, date_created)
+           VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+        (full_name, room_number, password_hash, 1 if is_admin else 0, date_created),
     )
     new_id = cur.fetchone()["id"]
     db.commit()
     return new_id
 
 
-def get_user_by_username(db, username):
-    return db.execute("SELECT * FROM users WHERE username = %s", (username,)).fetchone()
+def get_user_by_full_name(db, full_name):
+    return db.execute("SELECT * FROM users WHERE full_name = %s", (full_name,)).fetchone()
 
 
 def get_user_by_id(db, user_id):
@@ -175,16 +206,25 @@ def get_category_by_name(db, user_id, name):
     ).fetchone()
 
 
-def create_category(db, user_id, name):
-    cur = db.execute(
-        "INSERT INTO categories (user_id, name) VALUES (%s, %s) RETURNING id", (user_id, name)
-    )
+def create_category(db, user_id, name, color=None):
+    if color:
+        cur = db.execute(
+            "INSERT INTO categories (user_id, name, color) VALUES (%s, %s, %s) RETURNING id",
+            (user_id, name, color),
+        )
+    else:
+        # no color given -> falls back to the column's own DEFAULT 'Gray'
+        cur = db.execute(
+            "INSERT INTO categories (user_id, name) VALUES (%s, %s) RETURNING id", (user_id, name)
+        )
     new_id = cur.fetchone()["id"]
     db.commit()
     return new_id
 
 
 def get_or_create_category(db, user_id, name):
+    """Used by the item/box 'quick add' free-text category field, which has
+    no color picker -- new categories made this way get the default color."""
     name = name.strip()
     if not name:
         return None
@@ -194,10 +234,10 @@ def get_or_create_category(db, user_id, name):
     return create_category(db, user_id, name)
 
 
-def rename_category(db, user_id, category_id, new_name):
+def update_category(db, user_id, category_id, new_name, color):
     db.execute(
-        "UPDATE categories SET name = %s WHERE user_id = %s AND id = %s",
-        (new_name, user_id, category_id),
+        "UPDATE categories SET name = %s, color = %s WHERE user_id = %s AND id = %s",
+        (new_name, color, user_id, category_id),
     )
     db.commit()
 
@@ -249,7 +289,7 @@ def next_barcode(db, user_id, prefix, table):
 # ---------- items ----------
 
 ITEM_SELECT = """
-    SELECT items.*, categories.name AS category_name,
+    SELECT items.*, categories.name AS category_name, categories.color AS category_color,
            boxes.number AS box_number, boxes.barcode AS box_barcode
     FROM items
     LEFT JOIN categories ON items.category_id = categories.id
@@ -326,7 +366,7 @@ def unpack_item(db, user_id, item_id):
 # ---------- boxes ----------
 
 BOX_SELECT = """
-    SELECT boxes.*, categories.name AS category_name
+    SELECT boxes.*, categories.name AS category_name, categories.color AS category_color
     FROM boxes
     LEFT JOIN categories ON boxes.category_id = categories.id
 """
@@ -357,12 +397,13 @@ def get_box_by_id(db, user_id, box_id):
 
 def list_boxes(db, user_id):
     return db.execute(
-        """SELECT boxes.*, categories.name AS category_name, COUNT(items.id) AS item_count
+        """SELECT boxes.*, categories.name AS category_name, categories.color AS category_color,
+                  COUNT(items.id) AS item_count
            FROM boxes
            LEFT JOIN categories ON boxes.category_id = categories.id
            LEFT JOIN items ON items.box_id = boxes.id AND items.user_id = boxes.user_id
            WHERE boxes.user_id = %s
-           GROUP BY boxes.id, categories.name ORDER BY boxes.id DESC""",
+           GROUP BY boxes.id, categories.name, categories.color ORDER BY boxes.id DESC""",
         (user_id,),
     ).fetchall()
 
@@ -400,7 +441,7 @@ def log_activity(db, user_id, action, target_barcode, detail, performed_by_user_
 
 def list_activity(db, user_id):
     return db.execute(
-        """SELECT activity_log.*, performer.username AS performed_by_username
+        """SELECT activity_log.*, performer.full_name AS performed_by_full_name
            FROM activity_log
            LEFT JOIN users AS performer ON activity_log.performed_by_user_id = performer.id
            WHERE activity_log.user_id = %s

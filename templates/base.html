@@ -37,7 +37,7 @@
 <main class="container">
     {% if viewing_user %}
     <div class="admin-view-banner">
-        Viewing <strong>{{ viewing_user['username'] }}</strong>'s inventory as admin.
+        Viewing <strong>{{ viewing_user['full_name'] }}</strong>'s inventory as admin.
         <a href="{{ url_for('admin_exit_view') }}">Exit view</a>
     </div>
     {% endif %}

@@ -3,7 +3,7 @@
 {% block content %}
 <div class="card">
     <h1>My account</h1>
-    <p class="subtitle">Logged in as <strong>{{ current_user['username'] }}</strong>.</p>
+    <p class="subtitle">Logged in as <strong>{{ current_user['full_name'] }}</strong> (Room {{ current_user['room_number'] }}).</p>
     <form method="POST">
         <label for="current_password">Current password</label>
         <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
