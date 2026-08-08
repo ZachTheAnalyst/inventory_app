@@ -110,22 +110,22 @@ DO $$
 BEGIN
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'users' AND column_name = 'username'
+        WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'username'
     ) AND NOT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'users' AND column_name = 'full_name'
+        WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'full_name'
     ) THEN
-        ALTER TABLE users RENAME COLUMN username TO full_name;
+        ALTER TABLE public.users RENAME COLUMN username TO full_name;
     END IF;
 END $$;
 
-ALTER TABLE users ADD COLUMN IF NOT EXISTS room_number TEXT NOT NULL DEFAULT 'Unknown';
-ALTER TABLE users ALTER COLUMN room_number DROP DEFAULT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS room_number TEXT NOT NULL DEFAULT 'Unknown';
+ALTER TABLE public.users ALTER COLUMN room_number DROP DEFAULT;
 """
 
 # Same idea for categories.color, added after categories already existed.
 CATEGORIES_MIGRATION = """
-ALTER TABLE categories ADD COLUMN IF NOT EXISTS color TEXT NOT NULL DEFAULT 'Gray';
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS color TEXT NOT NULL DEFAULT 'Gray';
 """
 
 

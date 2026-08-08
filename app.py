@@ -94,9 +94,38 @@ def init_db():
 
 
 def bootstrap():
-    """Full app startup: DB schema + Supabase storage bucket, both idempotent."""
+    """Full app startup. DB schema init is required -- nothing works without
+    it, so a failure here is meant to be fatal. Supabase storage bucket setup
+    is best-effort: a Storage API hiccup shouldn't take down every other
+    route that has nothing to do with photos, so it's caught and logged
+    rather than left to block startup or every request."""
     init_db()
-    storage.ensure_bucket()
+    try:
+        storage.ensure_bucket()
+    except Exception as exc:
+        app.logger.error(
+            f"Supabase storage bucket setup failed (photo uploads may not work "
+            f"until this is fixed): {exc}"
+        )
+
+
+_bootstrapped = False
+
+
+@app.before_request
+def _ensure_bootstrapped():
+    """Safety net: bootstrap() is meant to run once at process start via
+    wsgi.py (gunicorn) or the __main__ block (local dev) -- but if a WSGI
+    entrypoint ever points at app:app directly instead of wsgi:app (e.g. a
+    Render start command set by hand, bypassing the Procfile), neither of
+    those ever fires and the DB schema silently drifts out of date while
+    the app otherwise looks like it's running fine. This makes sure it
+    still happens, lazily, on the first request any given worker handles,
+    regardless of which entrypoint actually got used."""
+    global _bootstrapped
+    if not _bootstrapped:
+        bootstrap()
+        _bootstrapped = True
 
 
 # ---------- auth helpers ----------
