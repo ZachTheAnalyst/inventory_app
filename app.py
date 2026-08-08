@@ -949,18 +949,20 @@ def generate_labels_pdf():
             "category_name": box["category_name"], "category_color": box["category_color"],
         }
 
-    rows = []
+    item_rows = []
     for iid in item_ids:
         item = data.get_item_by_id(db, uid, int(iid))
         if item:
-            rows.append(item_entry(item))
+            item_rows.append(item_entry(item))
+    box_rows = []
     for bid in box_ids:
         box = data.get_box_by_id(db, uid, int(bid))
         if box:
-            rows.append(box_entry(box))
+            box_rows.append(box_entry(box))
     if not item_ids and not box_ids:
-        rows = [item_entry(i) for i in data.list_items(db, uid)]
-        rows += [box_entry(b) for b in data.list_boxes(db, uid)]
+        item_rows = [item_entry(i) for i in data.list_items(db, uid)]
+        box_rows = [box_entry(b) for b in data.list_boxes(db, uid)]
+    rows = item_rows + box_rows
 
     buf = io.BytesIO()
     c = pdf_canvas.Canvas(buf, pagesize=letter)
@@ -992,7 +994,11 @@ def generate_labels_pdf():
 
     c.save()
     buf.seek(0)
-    return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name="labels.pdf")
+
+    item_word = "item" if len(item_rows) == 1 else "items"
+    box_word = "box" if len(box_rows) == 1 else "boxes"
+    filename = f"{len(item_rows)} {item_word} {len(box_rows)} {box_word} {today()}.pdf"
+    return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name=filename)
 
 
 if __name__ == "__main__":

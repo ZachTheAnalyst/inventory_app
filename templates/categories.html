@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import color_picker with context %}
 {% block title %}Categories - Dorm Inventory{% endblock %}
 {% block content %}
 <div class="card">
@@ -7,12 +8,8 @@
         <label for="name">New category name</label>
         <input type="text" id="name" name="name" required placeholder="e.g. Electronics">
 
-        <label for="color">Color</label>
-        <select name="color" id="color" class="color-select">
-            {% for color_name, swatch in CATEGORY_COLORS.items() %}
-            <option value="{{ color_name }}" style="background:{{ swatch['hex'] }};color:{{ swatch['text'] }};">{{ color_name }}</option>
-            {% endfor %}
-        </select>
+        <label>Color</label>
+        {{ color_picker('color-picker-new', 'Gray') }}
 
         <button type="submit">Add category</button>
     </form>
@@ -24,12 +21,7 @@
         <div class="item-list-row">
             <form method="POST" action="{{ url_for('rename_category_route', category_id=category['id']) }}" class="inline-form">
                 <input type="text" name="name" value="{{ category['name'] }}">
-                <select name="color" class="color-select">
-                    {% for color_name, swatch in CATEGORY_COLORS.items() %}
-                    <option value="{{ color_name }}" style="background:{{ swatch['hex'] }};color:{{ swatch['text'] }};"
-                            {% if category['color'] == color_name %}selected{% endif %}>{{ color_name }}</option>
-                    {% endfor %}
-                </select>
+                {{ color_picker('color-picker-' ~ category['id'], category['color']) }}
                 <button type="submit" class="btn-secondary btn-small">Save</button>
             </form>
             <form method="POST" action="{{ url_for('delete_category_route', category_id=category['id']) }}"
@@ -42,4 +34,6 @@
         <div class="empty-state">No categories yet.</div>
     {% endif %}
 </div>
+
+<script src="{{ url_for('static', filename='js/color_picker.js') }}"></script>
 {% endblock %}

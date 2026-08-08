@@ -1,0 +1,11 @@
+{% macro color_picker(picker_id, selected) %}
+<div class="color-picker" id="{{ picker_id }}">
+    <button type="button" class="color-picker-trigger" style="{{ category_badge_style(selected) }}">{{ selected }}</button>
+    <div class="color-picker-list hidden">
+        {% for color_name, swatch in CATEGORY_COLORS.items() %}
+        <div class="color-picker-option" data-value="{{ color_name }}" style="background:{{ swatch['hex'] }};color:{{ swatch['text'] }};">{{ color_name }}</div>
+        {% endfor %}
+    </div>
+    <input type="hidden" name="color" value="{{ selected }}">
+</div>
+{% endmacro %}
