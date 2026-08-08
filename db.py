@@ -166,6 +166,11 @@ def update_password(db, user_id, password_hash):
     db.commit()
 
 
+def update_room_number(db, user_id, room_number):
+    db.execute("UPDATE users SET room_number = %s WHERE id = %s", (room_number, user_id))
+    db.commit()
+
+
 def delete_user_cascade(db, user_id):
     """Permanently deletes a user account and everything scoped to it: items,
     boxes, categories, and their own activity log entries. All the FKs back

@@ -680,6 +680,37 @@ def admin_delete_user(user_id):
     return redirect(url_for("admin_users"))
 
 
+@app.route("/admin/users/<int:user_id>/edit_room", methods=["POST"])
+@admin_required
+def admin_edit_room(user_id):
+    db = get_db()
+    admin_user = get_current_user()
+    target = data.get_user_by_id(db, user_id)
+
+    if target is None:
+        flash("Account not found.")
+        return redirect(url_for("admin_users"))
+
+    new_room = request.form.get("room_number", "").strip()
+    if not new_room:
+        flash("Room number is required.")
+        return redirect(url_for("admin_users"))
+
+    old_room = target["room_number"]
+    if new_room == old_room:
+        flash("Room number unchanged.")
+        return redirect(url_for("admin_users"))
+
+    data.update_room_number(db, user_id, new_room)
+    data.log_activity(
+        db, user_id, "room_number_updated", None,
+        f"Room number updated from '{old_room}' to '{new_room}' (by admin '{admin_user['full_name']}')",
+        admin_user["id"], now(),
+    )
+    flash(f"Updated {target['full_name']}'s room to '{new_room}'.")
+    return redirect(url_for("admin_users"))
+
+
 @app.route("/admin/exit_view")
 @login_required
 def admin_exit_view():

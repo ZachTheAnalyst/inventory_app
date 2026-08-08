@@ -27,10 +27,17 @@
         </div>
         <div class="actions-row">
             <a class="btn btn-secondary" href="{{ url_for('admin_view_user', user_id=user['id']) }}">View inventory</a>
+            <details class="inline-edit">
+                <summary class="btn btn-secondary">Edit Room</summary>
+                <form method="POST" action="{{ url_for('admin_edit_room', user_id=user['id']) }}" class="inline-form">
+                    <input type="text" name="room_number" value="{{ user['room_number'] }}" required>
+                    <button type="submit" class="btn-secondary btn-small">Save</button>
+                </form>
+            </details>
             {% if user['id'] != current_user['id'] %}
             <form method="POST" action="{{ url_for('admin_delete_user', user_id=user['id']) }}"
                   onsubmit="return confirm('Are you sure you want to delete account {{ user['full_name'] }}?');">
-                <button type="submit" class="btn-danger">Delete</button>
+                <button type="submit" class="btn-danger">Delete Account</button>
             </form>
             {% endif %}
         </div>

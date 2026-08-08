@@ -310,3 +310,28 @@ button:hover, .btn:hover { background: var(--blue-dark); }
     font-weight: 700;
     vertical-align: middle;
 }
+
+/* <details>/<summary> used as a no-JS "click to reveal an inline edit form" toggle */
+.inline-edit summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.inline-edit summary::-webkit-details-marker,
+.inline-edit summary::marker {
+    display: none;
+    content: "";
+}
+
+.inline-edit[open] summary {
+    margin-bottom: 8px;
+}
+
+.inline-edit .inline-form {
+    flex: 0 0 auto;
+}
+
+.inline-edit .inline-form input {
+    width: auto;
+    min-width: 110px;
+}
