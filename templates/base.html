@@ -5,9 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}Dorm Inventory{% endblock %}</title>
 <script>
-  if (localStorage.getItem('theme') === 'light') {
-      document.documentElement.classList.add('light-mode');
-  }
+  (function () {
+    // First visit: follow the OS/browser preference. After that, whatever
+    // the user picked via the switch on the Account page wins, remembered
+    // client-side only (never touches the account/database).
+    var stored = localStorage.getItem('theme');
+    var theme = (stored === 'light' || stored === 'dark') ? stored :
+        (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.classList.add(theme + '-mode');
+  })();
 </script>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>

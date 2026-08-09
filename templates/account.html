@@ -20,28 +20,35 @@
 
 <div class="card">
     <h1>Appearance</h1>
-    <p class="subtitle">Dark mode is the default. Switch back to light mode here if you prefer.</p>
-    <button type="button" id="theme-toggle-btn" class="btn-secondary"></button>
+    <p class="subtitle">Defaults to your system's setting. Your choice here is remembered on this browser.</p>
+    <label class="theme-switch">
+        <input type="checkbox" id="theme-toggle-checkbox">
+        <span class="theme-switch-track"><span class="theme-switch-thumb"></span></span>
+        <span class="theme-switch-label" id="theme-toggle-label"></span>
+    </label>
 </div>
 
 <script>
-const themeBtn = document.getElementById('theme-toggle-btn');
+const checkbox = document.getElementById('theme-toggle-checkbox');
+const label = document.getElementById('theme-toggle-label');
 
 function currentTheme() {
-    return localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
+    return document.documentElement.classList.contains('dark-mode') ? 'dark' : 'light';
 }
 
-function updateButtonLabel() {
-    themeBtn.textContent = currentTheme() === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
+function updateLabel() {
+    label.textContent = currentTheme() === 'dark' ? 'Dark mode' : 'Light mode';
 }
 
-themeBtn.addEventListener('click', () => {
-    const next = currentTheme() === 'light' ? 'dark' : 'light';
+checkbox.checked = currentTheme() === 'dark';
+updateLabel();
+
+checkbox.addEventListener('change', () => {
+    const next = checkbox.checked ? 'dark' : 'light';
     localStorage.setItem('theme', next);
-    document.documentElement.classList.toggle('light-mode', next === 'light');
-    updateButtonLabel();
+    document.documentElement.classList.remove('light-mode', 'dark-mode');
+    document.documentElement.classList.add(next + '-mode');
+    updateLabel();
 });
-
-updateButtonLabel();
 </script>
 {% endblock %}

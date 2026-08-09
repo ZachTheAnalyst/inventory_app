@@ -1,53 +1,126 @@
+/*
+ * Palette built around #EEF0C9 ("silkworm", a pale sage-cream).
+ *
+ * Light mode: silkworm is the page surface itself, paired with dark
+ * neutral text for strong contrast. Buttons/links use a deep olive
+ * accent derived from the same hue (not literal silkworm -- it's too
+ * pale to carry white or dark text well as a button fill).
+ *
+ * Dark mode is NOT an inversion of light mode: it's a dark neutral
+ * canvas with silkworm used as the accent color (buttons, links, active
+ * states, highlights), which is what actually reads well -- the raw
+ * color would look washed out as a dark-mode background.
+ *
+ * Category color tags are a separate system entirely (per-category
+ * colors picked by the user, rendered via inline styles from
+ * CATEGORY_COLORS in app.py) and are untouched by any of this.
+ */
+
 :root {
-    --blue: #3b82f6;
-    --blue-dark: #60a5fa;
-    --bg: #0f172a;
-    --card: #1e293b;
-    --border: #334155;
-    --text: #e2e8f0;
-    --muted: #94a3b8;
-    --green: #22c55e;
-    --red: #f87171;
-    --flash-bg: #3f2d0a;
-    --flash-border: #b45309;
-    --activebox-bg: #052e21;
-    --activebox-border: #059669;
-    --adminbanner-bg: #3a2408;
-    --adminbanner-border: #d97706;
+    --bg: #EEF0C9;
+    --card: #fbfbf6;
+    --border: #dadbbd;
+    --text: #1c1c16;
+    --muted: #6b6d55;
+    --accent: #595b29;
+    --accent-hover: #46481e;
+    --accent-text: #ffffff;
+    --green: #3f7d4f;
+    --red: #b3543f;
+    --flash-bg: #fdf6d8;
+    --flash-border: #e0c86a;
+    --activebox-bg: #e8f0dc;
+    --activebox-border: #6b8f5a;
+    --adminbanner-bg: #f5e6d3;
+    --adminbanner-border: #c98a4b;
+    --shadow: 0 1px 2px rgba(28, 28, 22, 0.05), 0 2px 8px rgba(28, 28, 22, 0.06);
+    --shadow-sm: 0 1px 2px rgba(28, 28, 22, 0.06);
+}
+
+/* System default is dark -- applies automatically until the user picks
+   explicitly (at which point base.html always stamps an explicit class,
+   see below, so this media query stops mattering for that visitor). */
+@media (prefers-color-scheme: dark) {
+    :root:not(.light-mode) {
+        --bg: #15150f;
+        --card: #1e1e17;
+        --border: #34342a;
+        --text: #f2f1e6;
+        --muted: #a3a58c;
+        --accent: #EEF0C9;
+        --accent-hover: #e0e3aa;
+        --accent-text: #1a1a12;
+        --green: #6fae7c;
+        --red: #dd8571;
+        --flash-bg: #2e2a12;
+        --flash-border: #8a7530;
+        --activebox-bg: #1a2a17;
+        --activebox-border: #4d7a41;
+        --adminbanner-bg: #2e2015;
+        --adminbanner-border: #a06a35;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 10px rgba(0, 0, 0, 0.35);
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+}
+
+:root.dark-mode {
+    --bg: #15150f;
+    --card: #1e1e17;
+    --border: #34342a;
+    --text: #f2f1e6;
+    --muted: #a3a58c;
+    --accent: #EEF0C9;
+    --accent-hover: #e0e3aa;
+    --accent-text: #1a1a12;
+    --green: #6fae7c;
+    --red: #dd8571;
+    --flash-bg: #2e2a12;
+    --flash-border: #8a7530;
+    --activebox-bg: #1a2a17;
+    --activebox-border: #4d7a41;
+    --adminbanner-bg: #2e2015;
+    --adminbanner-border: #a06a35;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 10px rgba(0, 0, 0, 0.35);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 :root.light-mode {
-    --blue: #2563eb;
-    --blue-dark: #1d4ed8;
-    --bg: #f5f7fb;
-    --card: #ffffff;
-    --border: #e2e8f0;
-    --text: #1e293b;
-    --muted: #64748b;
-    --green: #16a34a;
-    --red: #dc2626;
-    --flash-bg: #fef3c7;
-    --flash-border: #fbbf24;
-    --activebox-bg: #ecfdf5;
-    --activebox-border: #10b981;
-    --adminbanner-bg: #fff7ed;
-    --adminbanner-border: #f59e0b;
+    --bg: #EEF0C9;
+    --card: #fbfbf6;
+    --border: #dadbbd;
+    --text: #1c1c16;
+    --muted: #6b6d55;
+    --accent: #595b29;
+    --accent-hover: #46481e;
+    --accent-text: #ffffff;
+    --green: #3f7d4f;
+    --red: #b3543f;
+    --flash-bg: #fdf6d8;
+    --flash-border: #e0c86a;
+    --activebox-bg: #e8f0dc;
+    --activebox-border: #6b8f5a;
+    --adminbanner-bg: #f5e6d3;
+    --adminbanner-border: #c98a4b;
+    --shadow: 0 1px 2px rgba(28, 28, 22, 0.05), 0 2px 8px rgba(28, 28, 22, 0.06);
+    --shadow-sm: 0 1px 2px rgba(28, 28, 22, 0.06);
 }
 
 * { box-sizing: border-box; }
 
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
 }
 
 .nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 24px;
+    padding: 16px 28px;
     background: var(--card);
     border-bottom: 1px solid var(--border);
     flex-wrap: wrap;
@@ -56,88 +129,104 @@ body {
 
 .brand {
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     text-decoration: none;
     color: var(--text);
+    letter-spacing: -0.01em;
 }
 
 .nav-links a {
-    margin-left: 18px;
+    margin-left: 20px;
     text-decoration: none;
     color: var(--muted);
     font-weight: 500;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
+    transition: color 0.15s ease;
 }
 
-.nav-links a:hover { color: var(--blue); }
+.nav-links a:hover { color: var(--accent); }
 
 .container {
     max-width: 720px;
     margin: 0 auto;
-    padding: 24px 16px 60px;
+    padding: 32px 20px 64px;
 }
 
 .card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 16px;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
 }
 
-h1 { font-size: 1.5rem; margin-bottom: 4px; }
-h2 { font-size: 1.15rem; margin-top: 0; }
-.subtitle { color: var(--muted); margin-top: 0; margin-bottom: 20px; }
+h1 { font-size: 1.5rem; margin-bottom: 4px; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin-top: 0; font-weight: 600; }
+.subtitle { color: var(--muted); margin-top: 0; margin-bottom: 22px; }
 
 input[type=text], input[type=number], input[type=password], input[type=file], textarea, select {
     width: 100%;
-    padding: 10px 12px;
+    padding: 11px 13px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 9px;
     font-size: 1rem;
-    margin-bottom: 14px;
+    font-family: inherit;
+    margin-bottom: 15px;
     background: var(--card);
     color: var(--text);
+    transition: border-color 0.15s ease;
+}
+
+input[type=text]:focus, input[type=number]:focus, input[type=password]:focus,
+textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
 }
 
 label {
     font-weight: 600;
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     color: var(--muted);
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
 }
 
 .scan-input {
     font-size: 1.3rem;
     padding: 16px;
     text-align: center;
-    border: 2px solid var(--blue);
-    border-radius: 10px;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
 }
 
 button, .btn {
-    background: var(--blue);
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-text);
     border: none;
     padding: 11px 18px;
-    border-radius: 8px;
+    border-radius: 9px;
     font-size: 0.95rem;
+    font-family: inherit;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
+    transition: background 0.15s ease, opacity 0.15s ease;
 }
 
-button:hover, .btn:hover { background: var(--blue-dark); }
+button:hover, .btn:hover { background: var(--accent-hover); }
 
 .btn-secondary {
     background: var(--card);
-    color: var(--blue);
-    border: 1px solid var(--blue);
+    color: var(--accent);
+    border: 1px solid var(--accent);
 }
 
-.btn-danger { background: var(--red); }
+.btn-secondary:hover { background: var(--bg); }
+
+.btn-danger { background: var(--red); color: #ffffff; }
+.btn-danger:hover { opacity: 0.88; }
 
 .result-box {
     margin-top: 20px;
@@ -155,7 +244,7 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 .field-row {
     display: flex;
     justify-content: space-between;
-    padding: 6px 0;
+    padding: 7px 0;
     border-bottom: 1px solid var(--border);
     font-size: 0.95rem;
 }
@@ -168,7 +257,7 @@ button:hover, .btn:hover { background: var(--blue-dark); }
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
+    padding: 13px 0;
     border-bottom: 1px solid var(--border);
     gap: 10px;
 }
@@ -177,27 +266,29 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 .item-name { font-weight: 600; }
 .item-meta { color: var(--muted); font-size: 0.85rem; }
 
-.barcode-img { max-width: 100%; margin: 12px 0; background: #fff; padding: 8px; border-radius: 6px; }
+/* barcodes always render on a literal white plate, regardless of theme --
+   scan contrast and print output depend on it, it isn't a brand color */
+.barcode-img { max-width: 100%; margin: 12px 0; background: #ffffff; padding: 8px; border-radius: 8px; }
 
 .flash {
     background: var(--flash-bg);
     border: 1px solid var(--flash-border);
-    padding: 10px 14px;
-    border-radius: 8px;
-    margin-bottom: 16px;
+    padding: 11px 15px;
+    border-radius: 9px;
+    margin-bottom: 18px;
 }
 
 .empty-state {
     text-align: center;
     color: var(--muted);
-    padding: 40px 20px;
+    padding: 44px 20px;
 }
 
 .checkbox-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 0;
+    padding: 9px 0;
     border-bottom: 1px solid var(--border);
 }
 
@@ -208,8 +299,8 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 .active-box-banner {
     background: var(--activebox-bg);
     border: 1px solid var(--activebox-border);
-    padding: 10px 14px;
-    border-radius: 8px;
+    padding: 11px 15px;
+    border-radius: 9px;
     margin-bottom: 14px;
     display: flex;
     align-items: center;
@@ -218,10 +309,10 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 
 .active-box-banner.hidden { display: none; }
 
-.btn-small { padding: 6px 10px; font-size: 0.85rem; }
+.btn-small { padding: 6px 11px; font-size: 0.85rem; }
 
 .result-box.packed-warn {
-    border-left: 4px solid #d97706;
+    border-left: 4px solid var(--adminbanner-border);
     display: none;
 }
 
@@ -230,7 +321,7 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 .item-photo {
     max-width: 100%;
     max-height: 240px;
-    border-radius: 8px;
+    border-radius: 10px;
     margin: 12px 0;
     display: block;
 }
@@ -240,9 +331,9 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 .admin-view-banner {
     background: var(--adminbanner-bg);
     border: 1px solid var(--adminbanner-border);
-    padding: 10px 14px;
-    border-radius: 8px;
-    margin-bottom: 16px;
+    padding: 11px 15px;
+    border-radius: 9px;
+    margin-bottom: 18px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -251,8 +342,8 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 
 .badge {
     display: inline-block;
-    background: var(--blue);
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-text);
     font-size: 0.7rem;
     padding: 2px 8px;
     border-radius: 999px;
@@ -284,7 +375,7 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 
 .camera-reader {
     margin-top: 14px;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
     border: 1px solid var(--border);
 }
@@ -302,7 +393,7 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 
 .color-picker-trigger {
     border: none;
-    border-radius: 8px;
+    border-radius: 9px;
     padding: 10px 14px;
     font-size: 0.95rem;
     font-weight: 700;
@@ -318,9 +409,9 @@ button:hover, .btn:hover { background: var(--blue-dark); }
     z-index: 20;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 9px;
     overflow: hidden;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow);
     min-width: 140px;
 }
 
@@ -335,11 +426,16 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 }
 
 /* the whole point: hovering an option bolds its text instead of the
-   browser painting a system-blue highlight over its actual color */
+   browser painting a system highlight over its actual color */
 .color-picker-option:hover {
     font-weight: 800;
 }
 
+/* Category tags: each category's own chosen color, rendered via inline
+   style (background/color come from app.py's CATEGORY_COLORS, computed
+   per-swatch for readable contrast against ITSELF). This is deliberately
+   separate from the site theme above and must never source a color from
+   a theme variable -- only layout/shape rules belong here. */
 .category-tag {
     display: inline-block;
     padding: 2px 9px;
@@ -372,4 +468,55 @@ button:hover, .btn:hover { background: var(--blue-dark); }
 .inline-edit .inline-form input {
     width: auto;
     min-width: 110px;
+}
+
+/* Light/dark switch (account page, "Appearance") */
+.theme-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.theme-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.theme-switch-track {
+    width: 46px;
+    height: 26px;
+    background: var(--border);
+    border-radius: 999px;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+}
+
+.theme-switch-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: var(--card);
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.theme-switch input:checked + .theme-switch-track {
+    background: var(--accent);
+}
+
+.theme-switch input:checked + .theme-switch-track .theme-switch-thumb {
+    transform: translateX(20px);
+}
+
+.theme-switch-label {
+    font-weight: 600;
+    font-size: 0.95rem;
 }
