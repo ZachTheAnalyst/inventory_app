@@ -167,7 +167,7 @@ body {
     display: block;
     width: 1.6em;
     height: 0.135em;
-    background: var(--text);
+    background: var(--accent);
     border-radius: 999em;
 }
 
