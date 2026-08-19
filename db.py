@@ -171,6 +171,11 @@ def update_room_number(db, user_id, room_number):
     db.commit()
 
 
+def update_full_name(db, user_id, new_full_name):
+    db.execute("UPDATE users SET full_name = %s WHERE id = %s", (new_full_name, user_id))
+    db.commit()
+
+
 def delete_user_cascade(db, user_id):
     """Permanently deletes a user account and everything scoped to it: items,
     boxes, categories, and their own activity log entries. All the FKs back
@@ -352,6 +357,14 @@ def delete_item(db, user_id, item_id):
     db.commit()
 
 
+def update_item_category(db, user_id, item_id, category_id):
+    db.execute(
+        "UPDATE items SET category_id = %s WHERE user_id = %s AND id = %s",
+        (category_id, user_id, item_id),
+    )
+    db.commit()
+
+
 def pack_item(db, user_id, item_id, box_id):
     db.execute(
         "UPDATE items SET box_id = %s, status = 'packed' WHERE user_id = %s AND id = %s",
@@ -415,6 +428,14 @@ def list_boxes(db, user_id):
 
 def box_contents(db, user_id, box_id):
     return list_items(db, user_id, box_id=box_id)
+
+
+def update_box_category(db, user_id, box_id, category_id):
+    db.execute(
+        "UPDATE boxes SET category_id = %s WHERE user_id = %s AND id = %s",
+        (category_id, user_id, box_id),
+    )
+    db.commit()
 
 
 def delete_box(db, user_id, box_id):

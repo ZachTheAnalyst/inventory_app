@@ -46,6 +46,14 @@
                     · {{ item['barcode'] }}
                     · {{ 'In ' ~ item['box_number'] if item['status'] == 'packed' else 'Not packed' }}
                 </div>
+                <form method="POST" action="{{ url_for('update_item_category_route', barcode_value=item['barcode']) }}" class="category-select-form">
+                    <select name="category_id" onchange="this.form.submit()">
+                        <option value="" {% if not item['category_id'] %}selected{% endif %}>Uncategorized</option>
+                        {% for category in categories %}
+                        <option value="{{ category['id'] }}" {% if item['category_id'] == category['id'] %}selected{% endif %}>{{ category['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
             </div>
             <div class="actions-row">
                 <a class="btn btn-secondary" href="{{ url_for('item_detail', barcode_value=item['barcode']) }}">View</a>

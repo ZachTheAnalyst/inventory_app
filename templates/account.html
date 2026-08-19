@@ -4,6 +4,16 @@
 <div class="card">
     <h1>My account</h1>
     <p class="subtitle">Logged in as <strong>{{ current_user['full_name'] }}</strong> (Room {{ current_user['room_number'] }}).</p>
+    <form method="POST" action="{{ url_for('change_full_name') }}">
+        <label for="new_full_name">Full name</label>
+        <input type="text" id="new_full_name" name="new_full_name" required value="{{ current_user['full_name'] }}" autocomplete="name">
+        <p class="subtitle" style="margin-bottom:12px;font-size:0.85rem;">Your name doubles as your login -- changing it takes effect immediately. Your room number and password aren't affected.</p>
+        <button type="submit">Update name</button>
+    </form>
+</div>
+
+<div class="card">
+    <h1>Change password</h1>
     <form method="POST">
         <label for="current_password">Current password</label>
         <input type="password" id="current_password" name="current_password" required autocomplete="current-password">

@@ -399,6 +399,18 @@ button:hover, .btn:hover { background: var(--accent-hover); }
 .item-name { font-weight: 600; }
 .item-meta { color: var(--muted); font-size: 0.85rem; }
 
+.category-select-form {
+    margin-top: 6px;
+}
+
+.category-select-form select {
+    width: auto;
+    min-width: 140px;
+    margin-bottom: 0;
+    padding: 5px 8px;
+    font-size: 0.82rem;
+}
+
 /* barcodes always render on a literal white plate, regardless of theme --
    scan contrast and print output depend on it, it isn't a brand color */
 .barcode-img { max-width: 100%; margin: 12px 0; background: #ffffff; padding: 8px; border-radius: 8px; }

@@ -19,6 +19,32 @@
 </div>
 
 <div class="card">
+    <h2>Add items from your inventory</h2>
+    <p class="subtitle">Check off unpacked items and add them to this box in one action.</p>
+    {% if unpacked_items %}
+    <form method="POST" action="{{ url_for('box_add_items', barcode_value=box['barcode']) }}">
+        {% for item in unpacked_items %}
+        <div class="checkbox-row">
+            <input type="checkbox" name="item_ids" value="{{ item['id'] }}" id="pack-item-{{ item['id'] }}">
+            <label for="pack-item-{{ item['id'] }}" style="margin:0;font-weight:400;">
+                {{ item['name'] }}
+                {% if item['category_name'] %}
+                <span class="category-tag" style="{{ category_badge_style(item['category_color']) }}">{{ item['category_name'] }}</span>
+                {% endif %}
+                <span class="item-meta">({{ item['barcode'] }})</span>
+            </label>
+        </div>
+        {% endfor %}
+        <div class="actions-row">
+            <button type="submit">Add selected to this box</button>
+        </div>
+    </form>
+    {% else %}
+    <div class="empty-state">No unpacked items available to add.</div>
+    {% endif %}
+</div>
+
+<div class="card">
     <h2>Unpack an item</h2>
     <p class="subtitle">Scan an item barcode to remove it from this box.</p>
     <div class="scan-row">

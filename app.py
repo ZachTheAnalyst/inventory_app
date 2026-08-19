@@ -276,6 +276,32 @@ def account():
     return render_template("account.html")
 
 
+@app.route("/account/name", methods=["POST"])
+@login_required
+def change_full_name():
+    db = get_db()
+    user = get_current_user()
+    new_name = request.form.get("new_full_name", "").strip()
+
+    if not new_name:
+        flash("New name is required.")
+        return redirect(url_for("account"))
+    if new_name == user["full_name"]:
+        flash("That's already your name.")
+        return redirect(url_for("account"))
+    if data.get_user_by_full_name(db, new_name):
+        flash(f"An account named '{new_name}' already exists. Names must be unique -- "
+              f"try adding a middle initial or similar to tell them apart.")
+        return redirect(url_for("account"))
+
+    old_name = user["full_name"]
+    data.update_full_name(db, user["id"], new_name)
+    data.log_activity(db, user["id"], "name_changed", None,
+                       f"Changed name from '{old_name}' to '{new_name}'", None, now())
+    flash(f"Name updated to '{new_name}'. Use this name to log in from now on.")
+    return redirect(url_for("account"))
+
+
 # ---------- CLI ----------
 
 @app.cli.command("create-user")
@@ -399,6 +425,40 @@ def delete_item_route(barcode_value):
     return redirect(url_for("inventory"))
 
 
+@app.route("/item/<barcode_value>/category", methods=["POST"])
+@login_required
+def update_item_category_route(barcode_value):
+    db = get_db()
+    uid = effective_user_id()
+    item = data.get_item_by_barcode(db, uid, barcode_value)
+    if item is None:
+        return render_template("not_found.html", barcode_value=barcode_value), 404
+
+    raw_category_id = request.form.get("category_id", "").strip()
+    new_category_id = int(raw_category_id) if raw_category_id else None
+
+    if new_category_id == item["category_id"]:
+        return redirect(request.referrer or url_for("inventory"))
+
+    new_category_name = "Uncategorized"
+    if new_category_id is not None:
+        new_category = data.get_category(db, uid, new_category_id)
+        if new_category is None:
+            flash("Category not found.")
+            return redirect(request.referrer or url_for("inventory"))
+        new_category_name = new_category["name"]
+
+    old_category_name = item["category_name"] or "Uncategorized"
+    data.update_item_category(db, uid, item["id"], new_category_id)
+    data.log_activity(
+        db, uid, "category_changed", item["barcode"],
+        f"Changed category of item '{item['name']}' from '{old_category_name}' to '{new_category_name}'",
+        acting_admin_id(), now(),
+    )
+    flash(f"Updated category for '{item['name']}' to {new_category_name}.")
+    return redirect(request.referrer or url_for("inventory"))
+
+
 @app.route("/item/<barcode_value>/reprint", methods=["POST"])
 @login_required
 def reprint_item(barcode_value):
@@ -481,7 +541,40 @@ def box_detail(barcode_value):
     if not os.path.exists(os.path.join(BARCODE_DIR, f"{box['barcode']}.png")):
         generate_barcode_image(box["barcode"])
     contents = data.box_contents(db, uid, box["id"])
-    return render_template("box.html", box=box, contents=contents)
+    unpacked_items = data.list_items(db, uid, status="not_packed")
+    return render_template("box.html", box=box, contents=contents, unpacked_items=unpacked_items)
+
+
+@app.route("/box/<barcode_value>/add_items", methods=["POST"])
+@login_required
+def box_add_items(barcode_value):
+    """Lets a user check off items from a list and pack them into this box in
+    one action, instead of scanning each one -- reuses _pack_item_and_log so
+    it's the exact same pack + activity-log behavior as the scan flow."""
+    db = get_db()
+    uid = effective_user_id()
+    box = data.get_box_by_barcode(db, uid, barcode_value)
+    if box is None:
+        return render_template("not_found.html", barcode_value=barcode_value), 404
+
+    item_ids = request.form.getlist("item_ids")
+    if not item_ids:
+        flash("No items selected.")
+        return redirect(url_for("box_detail", barcode_value=barcode_value))
+
+    packed_names = []
+    for raw_id in item_ids:
+        item = data.get_item_by_id(db, uid, int(raw_id))
+        if item is None:
+            continue
+        _pack_item_and_log(db, uid, item, box)
+        packed_names.append(item["name"])
+
+    if packed_names:
+        flash(f"Added {len(packed_names)} item(s) to '{box['number']}'.")
+    else:
+        flash("None of the selected items could be added.")
+    return redirect(url_for("box_detail", barcode_value=barcode_value))
 
 
 @app.route("/box/<barcode_value>/delete", methods=["POST"])
@@ -503,13 +596,48 @@ def delete_box_route(barcode_value):
     return redirect(url_for("boxes_list"))
 
 
+@app.route("/box/<barcode_value>/category", methods=["POST"])
+@login_required
+def update_box_category_route(barcode_value):
+    db = get_db()
+    uid = effective_user_id()
+    box = data.get_box_by_barcode(db, uid, barcode_value)
+    if box is None:
+        return render_template("not_found.html", barcode_value=barcode_value), 404
+
+    raw_category_id = request.form.get("category_id", "").strip()
+    new_category_id = int(raw_category_id) if raw_category_id else None
+
+    if new_category_id == box["category_id"]:
+        return redirect(request.referrer or url_for("boxes_list"))
+
+    new_category_name = "Uncategorized"
+    if new_category_id is not None:
+        new_category = data.get_category(db, uid, new_category_id)
+        if new_category is None:
+            flash("Category not found.")
+            return redirect(request.referrer or url_for("boxes_list"))
+        new_category_name = new_category["name"]
+
+    old_category_name = box["category_name"] or "Uncategorized"
+    data.update_box_category(db, uid, box["id"], new_category_id)
+    data.log_activity(
+        db, uid, "category_changed", box["barcode"],
+        f"Changed category of box '{box['number']}' from '{old_category_name}' to '{new_category_name}'",
+        acting_admin_id(), now(),
+    )
+    flash(f"Updated category for '{box['number']}' to {new_category_name}.")
+    return redirect(request.referrer or url_for("boxes_list"))
+
+
 @app.route("/boxes")
 @login_required
 def boxes_list():
     db = get_db()
     uid = effective_user_id()
     boxes = data.list_boxes(db, uid)
-    return render_template("boxes.html", boxes=boxes)
+    categories = data.list_categories(db, uid)
+    return render_template("boxes.html", boxes=boxes, categories=categories)
 
 
 # ---------- Categories ----------
@@ -585,6 +713,17 @@ def delete_category_route(category_id):
 
 # ---------- Packing ----------
 
+def _pack_item_and_log(db, uid, item, box):
+    """Shared by the scan-based /api/pack flow and the box-screen 'add items
+    from a list' flow (box_add_items) -- one place for the pack + activity
+    log side effects so the two entry points can't drift apart."""
+    data.pack_item(db, uid, item["id"], box["id"])
+    data.log_activity(
+        db, uid, "item_packed", item["barcode"],
+        f"Packed '{item['name']}' into box '{box['number']}'", acting_admin_id(), now(),
+    )
+
+
 @app.route("/pack")
 @login_required
 def pack_page():
@@ -608,11 +747,7 @@ def api_pack():
     if box is None:
         return jsonify({"status": "unknown_box", "barcode": box_barcode})
 
-    data.pack_item(db, uid, item["id"], box["id"])
-    data.log_activity(
-        db, uid, "item_packed", item_barcode,
-        f"Packed '{item['name']}' into box '{box['number']}'", acting_admin_id(), now(),
-    )
+    _pack_item_and_log(db, uid, item, box)
     return jsonify({
         "status": "packed", "item_name": item["name"],
         "box_number": box["number"], "box_barcode": box["barcode"],

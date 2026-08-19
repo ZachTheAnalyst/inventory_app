@@ -16,6 +16,14 @@
                     {% endif %}
                     · {{ box['item_count'] }} item(s) · {{ box['barcode'] }}
                 </div>
+                <form method="POST" action="{{ url_for('update_box_category_route', barcode_value=box['barcode']) }}" class="category-select-form">
+                    <select name="category_id" onchange="this.form.submit()">
+                        <option value="" {% if not box['category_id'] %}selected{% endif %}>Uncategorized</option>
+                        {% for category in categories %}
+                        <option value="{{ category['id'] }}" {% if box['category_id'] == category['id'] %}selected{% endif %}>{{ category['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
             </div>
             <a class="btn btn-secondary" href="{{ url_for('box_detail', barcode_value=box['barcode']) }}">View</a>
         </div>
