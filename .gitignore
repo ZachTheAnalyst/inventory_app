@@ -1,4 +1,5 @@
 # runtime / dev data
+.env
 inventory.db
 *.db
 *.db-journal
